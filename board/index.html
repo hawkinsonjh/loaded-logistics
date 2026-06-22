@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loaded Logistics — Dispatch</title>
+    <!-- Tailwind utilities used by the board. For a fully self-hosted build you can
+         swap this for compiled Tailwind; the Play CDN is fine for an internal tool. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html, body, #root { height: 100%; }
+      body { margin: 0; background: #0E1116; }
+      *:focus-visible { outline: 2px solid #F2A413; outline-offset: 1px; }
+      ::selection { background: #F2A41355; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
