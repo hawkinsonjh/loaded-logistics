@@ -67,3 +67,19 @@ create table if not exists digests (
   metrics_json jsonb,
   created_at   timestamptz not null default now()
 );
+
+-- Driver recruiting pipeline
+create table if not exists candidates (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  phone       text,
+  email       text,
+  cdl_class   text not null default 'A',   -- 'A' | 'B'
+  experience  integer,                       -- years of CDL experience
+  status      text not null default 'New',  -- New | Contacted | Interview | Offer | Hired | Rejected
+  source      text,                          -- Facebook | Indeed | Referral | LinkedIn | Walk-in | Other
+  notes       text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists candidates_status_idx on candidates (status);

@@ -77,6 +77,33 @@ export async function runAnalysis(): Promise<{ summary: string; flags: string[];
   return r.json();
 }
 
+// Candidates
+export async function getCandidates(): Promise<any[]> {
+  const r = await req("/api/candidates", { headers: authHeaders() });
+  return r.json();
+}
+export async function createCandidate(data: any): Promise<any> {
+  const r = await req("/api/candidates", { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+  return r.json();
+}
+export async function patchCandidate(id: string, patch: any): Promise<any> {
+  const r = await req("/api/candidates/" + id, { method: "PATCH", headers: authHeaders(), body: JSON.stringify(patch) });
+  return r.json();
+}
+export async function deleteCandidate(id: string): Promise<void> {
+  await req("/api/candidates/" + id, { method: "DELETE", headers: authHeaders() });
+}
+
+// Recruiting AI
+export async function generateSocialPost(platform: string, topic: string): Promise<{ post: string; hashtags: string[] }> {
+  const r = await req("/api/ai/social", { method: "POST", headers: authHeaders(), body: JSON.stringify({ platform, topic }) });
+  return r.json();
+}
+export async function runRecruitingAgent(goal: string): Promise<{ actions: any[]; summary: string; trace: any[] }> {
+  const r = await req("/api/ai/recruit", { method: "POST", headers: authHeaders(), body: JSON.stringify({ goal }) });
+  return r.json();
+}
+
 export async function runExecutorWorkflow(goal: string): Promise<{
   actions: { type: string; id?: string; patch?: any; reason?: string; body?: string; load_id?: string }[];
   summary: string;

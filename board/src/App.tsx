@@ -901,6 +901,429 @@ function Login({onAuthed}){
   );
 }
 
+/* ============================ RECRUITING ============================ */
+const CAND_STATUSES=["New","Contacted","Interview","Offer","Hired","Rejected"];
+const CAND_STATUS_COLOR={New:C.faint,Contacted:C.amber,Interview:C.blue,Offer:C.purple,Hired:C.green,Rejected:C.red};
+const CAND_ADVANCE={New:["Contact","Contacted"],Contacted:["Set Interview","Interview"],Interview:["Make Offer","Offer"],Offer:["Hire","Hired"]};
+const PLATFORMS=["Facebook","Instagram","LinkedIn","Twitter/X"];
+const TOPICS=["Driver Recruiting","Performance Highlight","Lane Spotlight","Company Culture","Milestone"];
+
+function AddCandidateModal({onClose,onSave}){
+  const [f,setF]=useState({name:"",phone:"",cdl_class:"A",experience:"",source:"Facebook",notes:""});
+  const set=(k,v)=>setF({...f,[k]:v});
+  const inp={width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:6,color:C.ink,padding:"8px 10px",fontFamily:mono,fontSize:12.5};
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:18,width:"100%",maxWidth:420}}>
+        <div style={{fontFamily:sans,fontSize:15,fontWeight:700,color:C.ink,marginBottom:14}}>Add candidate</div>
+        <div className="grid grid-cols-2" style={{gap:10}}>
+          <div className="col-span-2"><Label style={{marginBottom:4}}>Name *</Label><input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} autoFocus/></div>
+          <div><Label style={{marginBottom:4}}>Phone</Label><input style={inp} value={f.phone} onChange={e=>set("phone",e.target.value)} inputMode="tel"/></div>
+          <div><Label style={{marginBottom:4}}>Source</Label>
+            <select style={{...inp,color:C.ink}} value={f.source} onChange={e=>set("source",e.target.value)}>
+              {["Facebook","Indeed","Referral","LinkedIn","Walk-in","Other"].map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div><Label style={{marginBottom:4}}>CDL class</Label>
+            <select style={{...inp,color:C.ink}} value={f.cdl_class} onChange={e=>set("cdl_class",e.target.value)}>
+              <option value="A">Class A</option><option value="B">Class B</option>
+            </select>
+          </div>
+          <div><Label style={{marginBottom:4}}>Experience (yrs)</Label><input style={inp} value={f.experience} onChange={e=>set("experience",e.target.value)} inputMode="numeric"/></div>
+          <div className="col-span-2"><Label style={{marginBottom:4}}>Notes</Label><textarea style={{...inp,resize:"vertical"}} rows={2} value={f.notes} onChange={e=>set("notes",e.target.value)}/></div>
+        </div>
+        <div className="flex justify-end" style={{gap:8,marginTop:14}}>
+          <button onClick={onClose} style={{fontFamily:mono,fontSize:12,color:C.dim,background:C.raised,border:`1px solid ${C.line}`,borderRadius:7,padding:"8px 14px",cursor:"pointer"}}>Cancel</button>
+          <button onClick={()=>f.name.trim()&&onSave(f)} disabled={!f.name.trim()}
+            style={{fontFamily:mono,fontSize:12,fontWeight:700,color:C.bg,background:f.name.trim()?C.amber:C.faint,border:"none",borderRadius:7,padding:"8px 18px",cursor:f.name.trim()?"pointer":"default"}}>
+            Add to pipeline
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CandidateRow({c,onPatch,onDelete}){
+  const col=CAND_STATUS_COLOR[c.status]||C.faint;
+  const advance=CAND_ADVANCE[c.status];
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 54px 48px 80px 1fr auto",gap:8,padding:"9px 12px",
+      alignItems:"center",borderTop:`1px solid ${C.lineSoft}`,borderLeft:`3px solid ${col}`}}>
+      <div>
+        <div style={{fontFamily:sans,fontSize:13,fontWeight:600,color:C.ink}}>{c.name}</div>
+        {c.notes && <div style={{fontFamily:mono,fontSize:10.5,color:C.faint,marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{c.notes}</div>}
+      </div>
+      <Pill color={C.dim}>CDL-{c.cdl_class||"A"}</Pill>
+      <div style={{fontFamily:mono,fontSize:11,color:C.faint,textAlign:"center"}}>{c.experience!=null?c.experience+"yr":"—"}</div>
+      <div style={{fontFamily:mono,fontSize:11,color:C.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.source||"—"}</div>
+      <div style={{fontFamily:mono,fontSize:11,color:C.faint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.notes||""}</div>
+      <div className="flex items-center" style={{gap:5}}>
+        {advance && (
+          <button onClick={()=>onPatch(c.id,{status:advance[1]})}
+            style={{fontFamily:mono,fontSize:10.5,fontWeight:700,color:C.bg,background:CAND_STATUS_COLOR[advance[1]]||C.amber,
+              border:"none",borderRadius:5,padding:"4px 8px",cursor:"pointer",whiteSpace:"nowrap"}}>
+            {advance[0]} ›
+          </button>
+        )}
+        {c.status!=="Hired"&&c.status!=="Rejected"&&(
+          <button onClick={()=>onPatch(c.id,{status:"Rejected"})}
+            style={{fontFamily:mono,fontSize:10.5,color:C.red,background:C.raised,border:`1px solid ${C.line}`,borderRadius:5,padding:"4px 7px",cursor:"pointer"}}>
+            ✕
+          </button>
+        )}
+        <IconBtn title="Remove" onClick={()=>onDelete(c.id)} danger>×</IconBtn>
+      </div>
+    </div>
+  );
+}
+
+function Recruiting({loads}){
+  const [section,setSection]=useState("pipeline");
+
+  /* --- pipeline --- */
+  const [candidates,setCandidates]=useState([]);
+  const [statusFilter,setStatusFilter]=useState("active");
+  const [showAdd,setShowAdd]=useState(false);
+  const [cLoading,setCLoading]=useState(true);
+
+  useEffect(()=>{ loadCands(); },[]);
+  async function loadCands(){
+    setCLoading(true);
+    try{ setCandidates(await api.getCandidates()); }catch(e){}
+    setCLoading(false);
+  }
+  async function addCand(data){
+    try{ const row=await api.createCandidate({...data,experience:data.experience?parseInt(data.experience):null}); setCandidates(cs=>[row,...cs]); }
+    catch(e){}
+    setShowAdd(false);
+  }
+  async function patchCand(id,patch){
+    setCandidates(cs=>cs.map(c=>c.id===id?{...c,...patch}:c));
+    try{ const row=await api.patchCandidate(id,patch); setCandidates(cs=>cs.map(c=>c.id===id?row:c)); }
+    catch{ loadCands(); }
+  }
+  async function deleteCand(id){
+    setCandidates(cs=>cs.filter(c=>c.id!==id));
+    try{ await api.deleteCandidate(id); }catch{ loadCands(); }
+  }
+  const filtered=useMemo(()=>{
+    if(statusFilter==="active") return candidates.filter(c=>c.status!=="Hired"&&c.status!=="Rejected");
+    return candidates.filter(c=>c.status===statusFilter);
+  },[candidates,statusFilter]);
+  const counts=useMemo(()=>{
+    const m={active:0};
+    candidates.forEach(c=>{ m[c.status]=(m[c.status]||0)+1; if(c.status!=="Hired"&&c.status!=="Rejected") m.active++; });
+    return m;
+  },[candidates]);
+
+  /* --- social content --- */
+  const [platform,setPlatform]=useState("Facebook");
+  const [topic,setTopic]=useState("Driver Recruiting");
+  const [generating,setGenerating]=useState(false);
+  const [genResult,setGenResult]=useState(null);
+  const [genErr,setGenErr]=useState("");
+  const [copied,setCopied]=useState(false);
+
+  async function generate(){
+    setGenerating(true); setGenErr(""); setGenResult(null); setCopied(false);
+    try{ setGenResult(await api.generateSocialPost(platform,topic)); }
+    catch{ setGenErr("Generation failed — check that ANTHROPIC_API_KEY is set."); }
+    setGenerating(false);
+  }
+  function copyPost(){
+    if(!genResult) return;
+    const text=genResult.post+(genResult.hashtags.length?"\n\n"+genResult.hashtags.join(" "):"");
+    navigator.clipboard.writeText(text).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2000); });
+  }
+
+  /* --- recruiting agent --- */
+  const [goal,setGoal]=useState("");
+  const [executing,setExecuting]=useState(false);
+  const [execResult,setExecResult]=useState(null);
+  const [execErr,setExecErr]=useState("");
+  const [showTrace,setShowTrace]=useState(false);
+
+  async function execute(){
+    if(!goal.trim()||executing) return;
+    setExecuting(true); setExecErr(""); setExecResult(null); setShowTrace(false);
+    try{ const r=await api.runRecruitingAgent(goal.trim()); setExecResult(r); loadCands(); }
+    catch{ setExecErr("Agent failed — check that ANTHROPIC_API_KEY is set."); }
+    setExecuting(false);
+  }
+
+  /* section nav */
+  const tabs=[["pipeline","Pipeline"],["content","Social Content"],["agent","Recruiting Agent"]];
+
+  return (
+    <div>
+      {/* Section nav */}
+      <div className="flex" style={{gap:3,background:C.panel,border:`1px solid ${C.line}`,borderRadius:9,padding:3,marginBottom:14,width:"fit-content"}}>
+        {tabs.map(([id,label])=>(
+          <button key={id} onClick={()=>setSection(id)} style={{fontFamily:mono,fontSize:12,fontWeight:700,letterSpacing:.3,
+            color:section===id?C.bg:C.dim,background:section===id?C.amber:"transparent",
+            border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",whiteSpace:"nowrap"}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ===================== PIPELINE ===================== */}
+      {section==="pipeline" && (
+        <div>
+          <div className="flex flex-wrap items-center justify-between" style={{gap:10,marginBottom:12}}>
+            <div className="flex flex-wrap items-center" style={{gap:6}}>
+              {[["active","Active"],["New","New"],["Contacted","Contacted"],["Interview","Interview"],["Offer","Offer"],["Hired","Hired"],["Rejected","Rejected"]].map(([v,label])=>{
+                const on=statusFilter===v;
+                const c=v==="active"?C.amber:(CAND_STATUS_COLOR[v]||C.faint);
+                return (
+                  <button key={v} onClick={()=>setStatusFilter(v)}
+                    style={{fontFamily:mono,fontSize:11,fontWeight:600,letterSpacing:.3,
+                      color:on?C.bg:C.dim,background:on?c:C.panel,border:`1px solid ${on?c:C.line}`,
+                      borderRadius:20,padding:"4px 10px",cursor:"pointer",whiteSpace:"nowrap"}}>
+                    {label}{counts[v]!=null?` · ${counts[v]}`:""}
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={()=>setShowAdd(true)}
+              style={{fontFamily:mono,fontSize:12,fontWeight:700,color:C.bg,background:C.amber,
+                border:"none",borderRadius:6,padding:"7px 13px",cursor:"pointer"}}>
+              + Add candidate
+            </button>
+          </div>
+
+          <div style={{border:`1px solid ${C.line}`,borderRadius:9,overflow:"hidden"}}>
+            <div className="hidden md:grid" style={{gridTemplateColumns:"1fr 54px 48px 80px 1fr auto",
+              background:C.panel2,padding:"8px 12px",gap:8}}>
+              {["Name","CDL","Exp","Source","Notes",""].map((h,i)=>(
+                <div key={i} style={{fontFamily:sans,fontSize:10,letterSpacing:1,textTransform:"uppercase",color:C.faint}}>{h}</div>
+              ))}
+            </div>
+            {cLoading && (
+              <div style={{fontFamily:mono,fontSize:12,color:C.faint,textAlign:"center",padding:"28px 0"}}>Loading…</div>
+            )}
+            {!cLoading && filtered.length===0 && (
+              <div style={{fontFamily:mono,fontSize:12,color:C.faint,textAlign:"center",padding:"28px 0",background:C.panel}}>
+                {statusFilter==="active"?"No active candidates — add one above.":"Nothing here."}
+              </div>
+            )}
+            {filtered.map((c,i)=>(
+              <div key={c.id} style={{background:i%2?C.bg:C.panel}}>
+                <CandidateRow c={c} onPatch={patchCand} onDelete={deleteCand}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ===================== SOCIAL CONTENT ===================== */}
+      {section==="content" && (
+        <div className="flex flex-col lg:flex-row" style={{gap:14,alignItems:"flex-start"}}>
+          <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:14,flex:1,minWidth:0}}>
+            <div style={{fontFamily:sans,fontSize:15,fontWeight:700,color:C.ink,marginBottom:4}}>Social content generator</div>
+            <div style={{fontFamily:sans,fontSize:12.5,color:C.dim,marginBottom:14,lineHeight:1.4}}>
+              Generates platform-specific posts using your real fleet metrics — actual RPM, lane data, driver count. Copy and post directly to your accounts.
+            </div>
+
+            <Label style={{marginBottom:8}}>Platform</Label>
+            <div className="flex flex-wrap" style={{gap:6,marginBottom:14}}>
+              {PLATFORMS.map(p=>(
+                <button key={p} onClick={()=>setPlatform(p)}
+                  style={{fontFamily:mono,fontSize:12,fontWeight:600,color:platform===p?C.bg:C.dim,
+                    background:platform===p?C.blue:C.panel2,border:`1px solid ${platform===p?C.blue:C.line}`,
+                    borderRadius:20,padding:"5px 13px",cursor:"pointer"}}>
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <Label style={{marginBottom:8}}>Topic</Label>
+            <div className="flex flex-wrap" style={{gap:6,marginBottom:16}}>
+              {TOPICS.map(t=>(
+                <button key={t} onClick={()=>setTopic(t)}
+                  style={{fontFamily:mono,fontSize:11.5,fontWeight:600,color:topic===t?C.bg:C.dim,
+                    background:topic===t?C.amber:C.panel2,border:`1px solid ${topic===t?C.amber:C.line}`,
+                    borderRadius:20,padding:"5px 13px",cursor:"pointer"}}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={generate} disabled={generating}
+              style={{fontFamily:mono,fontSize:12.5,fontWeight:700,color:C.bg,
+                background:generating?C.faint:C.purple,border:"none",borderRadius:7,
+                padding:"9px 20px",cursor:generating?"default":"pointer"}}>
+              {generating?"Generating…":"Generate post"}
+            </button>
+
+            {genErr && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginTop:10}}>{genErr}</div>}
+
+            {genResult && (
+              <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:8,padding:"12px 14px"}}>
+                  <div className="flex items-center justify-between" style={{marginBottom:8}}>
+                    <Pill color={C.blue}>{platform}</Pill>
+                    <button onClick={copyPost}
+                      style={{fontFamily:mono,fontSize:11,fontWeight:700,color:copied?C.green:C.dim,
+                        background:C.raised,border:`1px solid ${C.line}`,borderRadius:6,padding:"4px 10px",cursor:"pointer"}}>
+                      {copied?"✓ Copied":"Copy"}
+                    </button>
+                  </div>
+                  <div style={{fontFamily:sans,fontSize:13.5,color:C.ink,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{genResult.post}</div>
+                </div>
+                {genResult.hashtags.length>0 && (
+                  <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:8,padding:"10px 12px"}}>
+                    <Label style={{marginBottom:8}}>Hashtags</Label>
+                    <div className="flex flex-wrap" style={{gap:5}}>
+                      {genResult.hashtags.map((h,i)=>(
+                        <span key={i} style={{fontFamily:mono,fontSize:11,color:C.blue,background:C.blue+"15",
+                          border:`1px solid ${C.blue}33`,borderRadius:4,padding:"3px 7px"}}>{h}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{width:"100%",maxWidth:280,background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:14,flexShrink:0}}>
+            <Label style={{marginBottom:10}}>Post ideas by platform</Label>
+            {[
+              ["Facebook","Driver Recruiting","Best for reaching local CDL holders"],
+              ["Instagram","Lane Spotlight","Visual appeal — tag your region"],
+              ["LinkedIn","Performance Highlight","Attracts experienced O/O and fleet buyers"],
+              ["Twitter/X","Driver Recruiting","Fast reach — keep it punchy"],
+            ].map(([pl,tp,note],i)=>(
+              <div key={i} onClick={()=>{ setPlatform(pl); setTopic(tp); }}
+                style={{padding:"8px 10px",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,
+                  marginBottom:7,cursor:"pointer"}}>
+                <div style={{fontFamily:mono,fontSize:11.5,color:C.amber,fontWeight:700}}>{pl} · {tp}</div>
+                <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:2}}>{note}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ===================== RECRUITING AGENT ===================== */}
+      {section==="agent" && (
+        <div className="flex flex-col lg:flex-row" style={{gap:14,alignItems:"flex-start"}}>
+          <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:14,flex:1,minWidth:0}}>
+            <div style={{fontFamily:sans,fontSize:15,fontWeight:700,color:C.ink,marginBottom:4}}>Recruiting agent</div>
+            <div style={{fontFamily:sans,fontSize:12.5,color:C.dim,marginBottom:12,lineHeight:1.4}}>
+              Give a goal. The agent reviews your candidate pipeline, analyzes fleet hiring needs, advances candidates through the pipeline, and drafts personalised outreach — all autonomously.
+            </div>
+
+            <div style={{background:C.raised,border:`1px solid ${C.amber}55`,borderRadius:8,padding:"8px 10px",marginBottom:12}}>
+              <div style={{fontFamily:mono,fontSize:10,letterSpacing:.8,textTransform:"uppercase",color:C.amber,marginBottom:3}}>Makes real changes</div>
+              <div style={{fontFamily:sans,fontSize:11.5,color:C.dim,lineHeight:1.4}}>
+                Can add or update candidates, draft outreach messages, and flag hiring needs. Actions take effect immediately.
+              </div>
+            </div>
+
+            <textarea value={goal} onChange={e=>setGoal(e.target.value)} rows={4}
+              placeholder={"Examples:\n• Review all New candidates and advance the most promising ones\n• Draft outreach texts for everyone in the Contacted stage\n• Analyze how many drivers we need and prioritise the best candidates"}
+              style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:7,color:C.ink,
+                padding:10,fontFamily:mono,fontSize:12,resize:"vertical",lineHeight:1.5}}/>
+
+            <button onClick={execute} disabled={executing||!goal.trim()}
+              style={{width:"100%",marginTop:8,fontFamily:mono,fontSize:12.5,fontWeight:700,
+                color:C.bg,background:(executing||!goal.trim())?C.faint:C.purple,
+                border:"none",borderRadius:7,padding:"9px",cursor:(executing||!goal.trim())?"default":"pointer"}}>
+              {executing?"Running agent…":"Run recruiting agent"}
+            </button>
+
+            {execErr && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginTop:8}}>{execErr}</div>}
+
+            {execResult && (
+              <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{background:C.panel2,border:`1px solid ${C.green}55`,borderRadius:8,padding:"10px 12px"}}>
+                  <Label style={{marginBottom:6,color:C.green}}>Completed</Label>
+                  <div style={{fontFamily:sans,fontSize:13,color:C.ink,lineHeight:1.5,whiteSpace:"pre-wrap"}}>{execResult.summary}</div>
+                </div>
+
+                {execResult.actions.length>0 && (
+                  <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:8,padding:"10px 12px"}}>
+                    <Label style={{marginBottom:8}}>Actions taken · {execResult.actions.length}</Label>
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {execResult.actions.map((a,i)=>(
+                        <div key={i} style={{background:C.bg,borderRadius:6,padding:"6px 9px",fontFamily:mono,fontSize:11,lineHeight:1.4}}>
+                          <div>
+                            <span style={{color:C.amber}}>
+                              {a.type==="add_candidate"?"Added candidate":
+                               a.type==="update_candidate"?"Updated candidate":
+                               a.type==="draft_outreach"?"Drafted outreach":a.type}
+                            </span>
+                            {(a.data?.name||a.name) && <span style={{color:C.ink}}> · {a.data?.name||a.name}</span>}
+                          </div>
+                          {a.reason && <div style={{color:C.dim,marginTop:2}}>{a.reason}</div>}
+                          {a.patch?.status && <div style={{color:C.faint,marginTop:1}}>→ {a.patch.status}</div>}
+                          {a.message && (
+                            <div style={{color:C.dim,marginTop:3,fontFamily:sans,fontSize:11.5,
+                              background:C.panel,borderRadius:4,padding:"4px 7px",whiteSpace:"pre-wrap",lineHeight:1.4}}>
+                              "{a.message}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {execResult.trace.length>0 && (
+                  <>
+                    <button onClick={()=>setShowTrace(!showTrace)}
+                      style={{fontFamily:mono,fontSize:11,color:C.dim,background:C.panel2,
+                        border:`1px solid ${C.line}`,borderRadius:6,padding:"6px 10px",cursor:"pointer",textAlign:"left"}}>
+                      {showTrace?"▾":"▸"} Tool call trace · {execResult.trace.length} steps
+                    </button>
+                    {showTrace && (
+                      <div style={{background:C.bg,border:`1px solid ${C.line}`,borderRadius:8,padding:10,
+                        maxHeight:240,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
+                        {execResult.trace.map((t,i)=>(
+                          <div key={i} style={{fontFamily:mono,fontSize:10.5,
+                            borderBottom:i<execResult.trace.length-1?`1px solid ${C.lineSoft}`:"none",paddingBottom:6}}>
+                            <span style={{color:C.purple}}>{i+1}. {t.tool}</span>
+                            <div style={{color:C.faint,marginTop:2,wordBreak:"break-all"}}>
+                              in: {JSON.stringify(t.input).slice(0,80)}{JSON.stringify(t.input).length>80?"…":""}
+                            </div>
+                            <div style={{color:C.dim,marginTop:2,wordBreak:"break-all"}}>
+                              → {String(t.result).slice(0,100)}{String(t.result).length>100?"…":""}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* side tip card */}
+          <div style={{width:"100%",maxWidth:280,background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:14,flexShrink:0}}>
+            <Label style={{marginBottom:10}}>What the agent can do</Label>
+            {[
+              ["Review pipeline","Check all candidates and advance the strongest ones to Interview or Offer."],
+              ["Draft outreach","Write personalised texts, emails, or DMs for each candidate using real fleet data."],
+              ["Analyse hiring needs","Compare truck count vs active drivers to determine how many seats to fill."],
+              ["Add candidates","Create new pipeline entries from a sourcing run or job fair list."],
+            ].map(([title,desc],i)=>(
+              <div key={i} style={{padding:"8px 10px",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,marginBottom:7}}>
+                <div style={{fontFamily:mono,fontSize:11.5,color:C.amber,fontWeight:700}}>{title}</div>
+                <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:2,lineHeight:1.4}}>{desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showAdd && <AddCandidateModal onClose={()=>setShowAdd(false)} onSave={addCand}/>}
+    </div>
+  );
+}
+
 /* ============================ AGENTS ============================ */
 function Agents({onRefresh}){
   const [analysis,setAnalysis]=useState(null);
@@ -1094,7 +1517,7 @@ function Agents({onRefresh}){
 }
 
 /* ============================ APP ============================ */
-const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["chat","Team"],["copilot","Copilot"],["agents","Agents"]];
+const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["chat","Team"],["copilot","Copilot"],["agents","Agents"],["recruiting","Recruiting"]];
 export default function App(){
   const [authed,setAuthed]=useState(!!api.token());
   const [loads,setLoads]=useState([]);
@@ -1178,6 +1601,7 @@ export default function App(){
         {view==="chat" && <Chat loads={loads}/>}
         {view==="copilot" && <Copilot loads={loads}/>}
         {view==="agents" && <Agents onRefresh={refresh}/>}
+        {view==="recruiting" && <Recruiting loads={loads}/>}
 
         {view==="inbox" && (
           <div style={{marginTop:16,maxWidth:760,fontFamily:sans,fontSize:11.5,color:C.faint,lineHeight:1.5,borderTop:`1px solid ${C.lineSoft}`,paddingTop:12}}>
