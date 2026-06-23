@@ -71,3 +71,17 @@ export async function copilotReply(messages: any[], context: any): Promise<strin
   const d = await r.json();
   return d.text;
 }
+
+export async function runAnalysis(): Promise<{ summary: string; flags: string[]; opportunities: string[] }> {
+  const r = await req("/api/ai/analyze", { method: "POST", headers: authHeaders(), body: JSON.stringify({}) });
+  return r.json();
+}
+
+export async function runExecutorWorkflow(goal: string): Promise<{
+  actions: { type: string; id?: string; patch?: any; reason?: string; body?: string; load_id?: string }[];
+  summary: string;
+  trace: { tool: string; input: any; result: string }[];
+}> {
+  const r = await req("/api/ai/execute", { method: "POST", headers: authHeaders(), body: JSON.stringify({ goal }) });
+  return r.json();
+}

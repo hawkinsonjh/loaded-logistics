@@ -901,8 +901,200 @@ function Login({onAuthed}){
   );
 }
 
+/* ============================ AGENTS ============================ */
+function Agents({onRefresh}){
+  const [analysis,setAnalysis]=useState(null);
+  const [analyzing,setAnalyzing]=useState(false);
+  const [analysisErr,setAnalysisErr]=useState("");
+
+  const [goal,setGoal]=useState("");
+  const [executing,setExecuting]=useState(false);
+  const [execResult,setExecResult]=useState(null);
+  const [execErr,setExecErr]=useState("");
+  const [showTrace,setShowTrace]=useState(false);
+
+  async function analyze(){
+    setAnalyzing(true); setAnalysisErr(""); setAnalysis(null);
+    try{ setAnalysis(await api.runAnalysis()); }
+    catch(e){ setAnalysisErr("Analysis failed — check that ANTHROPIC_API_KEY is set on the backend."); }
+    setAnalyzing(false);
+  }
+
+  async function execute(){
+    if(!goal.trim()||executing) return;
+    setExecuting(true); setExecErr(""); setExecResult(null); setShowTrace(false);
+    try{
+      const r=await api.runExecutorWorkflow(goal.trim());
+      setExecResult(r);
+      onRefresh();
+    }catch(e){ setExecErr("Execution failed — check that ANTHROPIC_API_KEY is set on the backend."); }
+    setExecuting(false);
+  }
+
+  return (
+    <div className="flex flex-col lg:flex-row" style={{gap:14,alignItems:"flex-start"}}>
+
+      {/* ---- Analyst ---- */}
+      <div className="flex-1" style={{minWidth:0}}>
+        <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:14}}>
+          <div className="flex items-start justify-between" style={{marginBottom:12,gap:10}}>
+            <div>
+              <div style={{fontFamily:sans,fontSize:15,fontWeight:700,color:C.ink}}>Operations analyst</div>
+              <div style={{fontFamily:sans,fontSize:12.5,color:C.dim,marginTop:3,lineHeight:1.4}}>
+                Reads the full load history and active board, returns a structured critique — flags, risks, and opportunities.
+                Read-only: makes no changes.
+              </div>
+            </div>
+            <button onClick={analyze} disabled={analyzing}
+              style={{fontFamily:mono,fontSize:12,fontWeight:700,color:C.bg,
+                background:analyzing?C.faint:C.amber,border:"none",borderRadius:7,
+                padding:"8px 14px",cursor:analyzing?"default":"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+              {analyzing?"Analyzing…":"Run analysis"}
+            </button>
+          </div>
+
+          {analysisErr && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginBottom:10}}>{analysisErr}</div>}
+
+          {!analysis && !analyzing && (
+            <div style={{fontFamily:mono,fontSize:12,color:C.faint,textAlign:"center",padding:"32px 0",
+              border:`1px dashed ${C.line}`,borderRadius:8}}>
+              Click "Run analysis" to get an AI critique of current operations.
+            </div>
+          )}
+
+          {analysis && (
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:8,padding:"10px 12px"}}>
+                <Label style={{marginBottom:6}}>Executive summary</Label>
+                <div style={{fontFamily:sans,fontSize:13.5,color:C.ink,lineHeight:1.55}}>{analysis.summary}</div>
+              </div>
+
+              {analysis.flags.length>0 && (
+                <div style={{background:C.panel2,border:`1px solid ${C.red}44`,borderRadius:8,padding:"10px 12px"}}>
+                  <Label style={{marginBottom:8,color:C.red}}>Flags · risks</Label>
+                  <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                    {analysis.flags.map((f,i)=>(
+                      <div key={i} className="flex items-start" style={{gap:9}}>
+                        <div style={{width:6,height:6,borderRadius:9,background:C.red,flexShrink:0,marginTop:6}}/>
+                        <span style={{fontFamily:sans,fontSize:13,color:C.ink,lineHeight:1.4}}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {analysis.opportunities.length>0 && (
+                <div style={{background:C.panel2,border:`1px solid ${C.green}44`,borderRadius:8,padding:"10px 12px"}}>
+                  <Label style={{marginBottom:8,color:C.green}}>Opportunities</Label>
+                  <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                    {analysis.opportunities.map((o,i)=>(
+                      <div key={i} className="flex items-start" style={{gap:9}}>
+                        <div style={{width:6,height:6,borderRadius:9,background:C.green,flexShrink:0,marginTop:6}}/>
+                        <span style={{fontFamily:sans,fontSize:13,color:C.ink,lineHeight:1.4}}>{o}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ---- Executor ---- */}
+      <div style={{width:"100%",maxWidth:400,flexShrink:0}}>
+        <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:14}}>
+          <div style={{marginBottom:10}}>
+            <div style={{fontFamily:sans,fontSize:15,fontWeight:700,color:C.ink}}>Workflow executor</div>
+            <div style={{fontFamily:sans,fontSize:12.5,color:C.dim,marginTop:3,lineHeight:1.4}}>
+              Give a high-level goal. The agent reads the live board, decides what to do, and executes the changes.
+            </div>
+          </div>
+
+          <div style={{background:C.raised,border:`1px solid ${C.amber}55`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
+            <div style={{fontFamily:mono,fontSize:10,letterSpacing:.8,textTransform:"uppercase",color:C.amber,marginBottom:3}}>
+              Makes real changes
+            </div>
+            <div style={{fontFamily:sans,fontSize:11.5,color:C.dim,lineHeight:1.4}}>
+              This agent can assign drivers, advance statuses, and post team messages. All actions take effect immediately and refresh the board on completion.
+            </div>
+          </div>
+
+          <textarea value={goal} onChange={e=>setGoal(e.target.value)} rows={5}
+            placeholder={"Examples:\n• Assign all available loads to drivers with matching lanes\n• Flag thin-margin active loads and post a warning to the team\n• Post a daily summary of active loads to the team channel"}
+            style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:7,color:C.ink,
+              padding:10,fontFamily:mono,fontSize:12,resize:"vertical",lineHeight:1.5}}/>
+
+          <button onClick={execute} disabled={executing||!goal.trim()}
+            style={{width:"100%",marginTop:8,fontFamily:mono,fontSize:12.5,fontWeight:700,
+              color:C.bg,background:(executing||!goal.trim())?C.faint:C.purple,
+              border:"none",borderRadius:7,padding:"9px",cursor:(executing||!goal.trim())?"default":"pointer"}}>
+            {executing?"Executing workflow…":"Execute workflow"}
+          </button>
+
+          {execErr && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginTop:8}}>{execErr}</div>}
+
+          {execResult && (
+            <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{background:C.panel2,border:`1px solid ${C.green}55`,borderRadius:8,padding:"10px 12px"}}>
+                <Label style={{marginBottom:6,color:C.green}}>Completed</Label>
+                <div style={{fontFamily:sans,fontSize:13,color:C.ink,lineHeight:1.45,whiteSpace:"pre-wrap"}}>{execResult.summary}</div>
+              </div>
+
+              {execResult.actions.length>0 && (
+                <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:8,padding:"10px 12px"}}>
+                  <Label style={{marginBottom:8}}>Actions taken · {execResult.actions.length}</Label>
+                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                    {execResult.actions.map((a,i)=>(
+                      <div key={i} style={{fontFamily:mono,fontSize:11,background:C.bg,borderRadius:5,padding:"5px 8px",lineHeight:1.4}}>
+                        <span style={{color:C.amber}}>
+                          {a.type==="patch_load"?"Updated load":a.type==="post_message"?"Posted message":a.type}
+                        </span>
+                        {a.reason && <span style={{color:C.dim}}> · {a.reason}</span>}
+                        {a.patch && <div style={{color:C.faint,marginTop:2}}>{Object.entries(a.patch).map(([k,v])=>`${k}=${v}`).join(", ")}</div>}
+                        {a.body && <div style={{color:C.faint,marginTop:2}}>"{String(a.body).slice(0,60)}{String(a.body).length>60?"…":""}"</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {execResult.trace.length>0 && (
+                <>
+                  <button onClick={()=>setShowTrace(!showTrace)}
+                    style={{fontFamily:mono,fontSize:11,color:C.dim,background:C.panel2,
+                      border:`1px solid ${C.line}`,borderRadius:6,padding:"6px 10px",cursor:"pointer",textAlign:"left"}}>
+                    {showTrace?"▾":"▸"} Tool call trace · {execResult.trace.length} steps
+                  </button>
+                  {showTrace && (
+                    <div style={{background:C.bg,border:`1px solid ${C.line}`,borderRadius:8,padding:10,
+                      maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
+                      {execResult.trace.map((t,i)=>(
+                        <div key={i} style={{fontFamily:mono,fontSize:10.5,
+                          borderBottom:i<execResult.trace.length-1?`1px solid ${C.lineSoft}`:"none",paddingBottom:6}}>
+                          <div><span style={{color:C.purple}}>{i+1}. {t.tool}</span></div>
+                          <div style={{color:C.faint,marginTop:2,wordBreak:"break-all"}}>
+                            in: {JSON.stringify(t.input).slice(0,80)}{JSON.stringify(t.input).length>80?"…":""}
+                          </div>
+                          <div style={{color:C.dim,marginTop:2,wordBreak:"break-all"}}>
+                            → {String(t.result).slice(0,100)}{String(t.result).length>100?"…":""}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============================ APP ============================ */
-const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["chat","Team"],["copilot","Copilot"]];
+const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["chat","Team"],["copilot","Copilot"],["agents","Agents"]];
 export default function App(){
   const [authed,setAuthed]=useState(!!api.token());
   const [loads,setLoads]=useState([]);
@@ -985,6 +1177,7 @@ export default function App(){
         {view==="inbox" && <Inbox onAdd={addLoad}/>}
         {view==="chat" && <Chat loads={loads}/>}
         {view==="copilot" && <Copilot loads={loads}/>}
+        {view==="agents" && <Agents onRefresh={refresh}/>}
 
         {view==="inbox" && (
           <div style={{marginTop:16,maxWidth:760,fontFamily:sans,fontSize:11.5,color:C.faint,lineHeight:1.5,borderTop:`1px solid ${C.lineSoft}`,paddingTop:12}}>

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { q } from "./db.js";
 import { checkPassword, issueToken, requireAuth } from "./auth.js";
+import { runAnalyst, runExecutor } from "./agents.js";
 
 const app = express();
 app.use(cors());                 // board is a separate origin; allow it
@@ -150,6 +151,29 @@ app.post("/api/ai/copilot", requireAuth, async (req, res) => {
   try {
     const out = await callAnthropic(messages || [], sys, 900);
     res.json({ text: out });
+  } catch (e: any) {
+    res.status(503).json({ error: e.message });
+  }
+});
+
+/* ------------------------------- agents ---------------------------------- */
+// Analyst: read-only critique of the full fleet state.
+app.post("/api/ai/analyze", requireAuth, async (_req, res) => {
+  try {
+    const result = await runAnalyst();
+    res.json(result);
+  } catch (e: any) {
+    res.status(503).json({ error: e.message });
+  }
+});
+
+// Executor: agentic tool-use loop that can read AND write the board.
+app.post("/api/ai/execute", requireAuth, async (req, res) => {
+  const { goal } = req.body || {};
+  if (!goal) return res.status(400).json({ error: "No goal provided" });
+  try {
+    const result = await runExecutor(goal);
+    res.json(result);
   } catch (e: any) {
     res.status(503).json({ error: e.message });
   }
