@@ -147,6 +147,7 @@ All exported functions: `login`, `getLoads`, `createLoad`, `patchLoad`, `deleteL
 | `chat` | `Chat` | Team message channel with load tagging, polls every 10s |
 | `copilot` | `Copilot` | Multi-turn AI chat with live board state injected as context |
 | `agents` | `Agents` | Operations Analyst (read-only critique) + Workflow Executor (agentic tool-use) |
+| `recruiting` | `Recruiting` | Candidate pipeline, social content generator, recruiting agent |
 
 **Shared helper functions** (used across components):
 - `computeRpm(l)` — uses `l.rpm` if present, otherwise `l.rate / l.miles`
@@ -211,6 +212,41 @@ Core tables:
 - `digests` — Phase 2 placeholder for automated daily summaries
 
 Schema is idempotent — `CREATE TABLE IF NOT EXISTS` and `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` throughout. Safe to re-run `npm run migrate` at any time.
+
+## Recruiting & social media — Recruiting tab
+
+The **Recruiting** tab has three sub-sections, toggled by pills at the top:
+
+### Candidate pipeline
+Backed by the `candidates` table. Status flow: `New → Contacted → Interview → Offer → Hired | Rejected`. Each row has one-click advance buttons and a Reject button. "Add candidate" opens a modal capturing name, phone, CDL class, years of experience, source channel, and notes.
+
+CRUD routes follow the same `CANDIDATE_COLS` allowlist pattern as loads:
+```
+GET    /api/candidates
+POST   /api/candidates
+PATCH  /api/candidates/:id
+DELETE /api/candidates/:id
+```
+
+### Social content generator (`POST /api/ai/social`)
+Non-agentic single-call endpoint. Backend calls `buildSocialContext()` (fetches last 100 loads, computes avg RPM, truck count, driver count, states served) and passes it to Claude with platform-specific rules and a topic-specific prompt. Returns `{ post: string, hashtags: string[] }`. The post body never contains hashtags — they are separated so the UI can display them as pills and the user can copy them independently.
+
+Supported platforms: `Facebook | Instagram | LinkedIn | Twitter/X`  
+Supported topics: `Driver Recruiting | Performance Highlight | Lane Spotlight | Company Culture | Milestone`
+
+### Recruiting agent (`POST /api/ai/recruit`, `backend/src/recruiting.ts`)
+Agentic tool-use loop (up to 8 iterations). Tools:
+
+| Tool | Effect |
+|------|--------|
+| `list_candidates` | Fresh DB query, filterable by status |
+| `update_candidate` | Patches candidate via `CAND_SAFE_COLS` allowlist |
+| `add_candidate` | Inserts a new candidate |
+| `get_fleet_needs` | Derives open seats from unit count vs active-driver count |
+| `draft_outreach` | Calls Claude to write a personalised text/email/DM using candidate profile + real fleet averages |
+| `finish` | Ends the loop, returns summary |
+
+`draft_outreach` makes a nested Claude call inside the tool execution — it fetches the last 30 delivered loads to compute real avg RPM and avg driver pay, then generates a brief channel-appropriate message. The message is included in the action object so the UI can display it inline.
 
 ## Planned but not implemented
 

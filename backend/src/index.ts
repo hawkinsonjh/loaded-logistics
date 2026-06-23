@@ -3,6 +3,7 @@ import cors from "cors";
 import { q } from "./db.js";
 import { checkPassword, issueToken, requireAuth } from "./auth.js";
 import { runAnalyst, runExecutor } from "./agents.js";
+import { generateSocialPost, runRecruitingAgent } from "./recruiting.js";
 
 const app = express();
 app.use(cors());                 // board is a separate origin; allow it
@@ -156,6 +157,50 @@ app.post("/api/ai/copilot", requireAuth, async (req, res) => {
   }
 });
 
+/* ----------------------------- candidates -------------------------------- */
+const CANDIDATE_COLS = ["name","phone","email","cdl_class","experience","status","source","notes"];
+
+app.get("/api/candidates", requireAuth, async (_req, res) => {
+  const rows = await q("select * from candidates order by created_at desc");
+  res.json(rows);
+});
+
+app.post("/api/candidates", requireAuth, async (req, res) => {
+  const b = req.body || {};
+  const cols: string[] = [], vals: any[] = [], ph: string[] = [];
+  for (const c of CANDIDATE_COLS) {
+    if (b[c] !== undefined) { cols.push(c); vals.push(b[c] === "" ? null : b[c]); ph.push("$" + vals.length); }
+  }
+  if (!cols.length) return res.status(400).json({ error: "No fields" });
+  const rows = await q(
+    `insert into candidates (${cols.join(",")}) values (${ph.join(",")}) returning *`,
+    vals
+  );
+  res.json(rows[0]);
+});
+
+app.patch("/api/candidates/:id", requireAuth, async (req, res) => {
+  const b = req.body || {};
+  const sets: string[] = [], vals: any[] = [];
+  for (const c of CANDIDATE_COLS) {
+    if (b[c] !== undefined) { vals.push(b[c] === "" ? null : b[c]); sets.push(`${c}=$${vals.length}`); }
+  }
+  if (!sets.length) return res.status(400).json({ error: "No fields" });
+  sets.push("updated_at=now()");
+  vals.push(req.params.id);
+  const rows = await q(
+    `update candidates set ${sets.join(",")} where id=$${vals.length} returning *`,
+    vals
+  );
+  if (!rows.length) return res.status(404).json({ error: "Not found" });
+  res.json(rows[0]);
+});
+
+app.delete("/api/candidates/:id", requireAuth, async (req, res) => {
+  await q("delete from candidates where id=$1", [req.params.id]);
+  res.json({ ok: true });
+});
+
 /* ------------------------------- agents ---------------------------------- */
 // Analyst: read-only critique of the full fleet state.
 app.post("/api/ai/analyze", requireAuth, async (_req, res) => {
@@ -173,6 +218,30 @@ app.post("/api/ai/execute", requireAuth, async (req, res) => {
   if (!goal) return res.status(400).json({ error: "No goal provided" });
   try {
     const result = await runExecutor(goal);
+    res.json(result);
+  } catch (e: any) {
+    res.status(503).json({ error: e.message });
+  }
+});
+
+// Social content generator: single-call, non-agentic.
+app.post("/api/ai/social", requireAuth, async (req, res) => {
+  const { platform, topic } = req.body || {};
+  if (!platform || !topic) return res.status(400).json({ error: "Missing platform or topic" });
+  try {
+    const result = await generateSocialPost(platform, topic);
+    res.json(result);
+  } catch (e: any) {
+    res.status(503).json({ error: e.message });
+  }
+});
+
+// Recruiting agent: agentic loop that manages candidate pipeline + drafts outreach.
+app.post("/api/ai/recruit", requireAuth, async (req, res) => {
+  const { goal } = req.body || {};
+  if (!goal) return res.status(400).json({ error: "No goal provided" });
+  try {
+    const result = await runRecruitingAgent(goal);
     res.json(result);
   } catch (e: any) {
     res.status(503).json({ error: e.message });
