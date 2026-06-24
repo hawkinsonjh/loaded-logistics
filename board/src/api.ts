@@ -112,3 +112,28 @@ export async function runExecutorWorkflow(goal: string): Promise<{
   const r = await req("/api/ai/execute", { method: "POST", headers: authHeaders(), body: JSON.stringify({ goal }) });
   return r.json();
 }
+
+// Gmail
+export async function getGmailInbox(extra = "", limit = 20): Promise<any[]> {
+  const qs = new URLSearchParams();
+  if (extra) qs.set("q", extra);
+  qs.set("limit", String(limit));
+  const r = await req("/api/gmail/inbox?" + qs.toString(), { headers: authHeaders() });
+  return r.json();
+}
+export async function getGmailThread(id: string): Promise<any> {
+  const r = await req("/api/gmail/thread/" + id, { headers: authHeaders() });
+  return r.json();
+}
+export async function saveGmailDraft(to: string, subject: string, body: string, threadId?: string, inReplyTo?: string): Promise<{ draftId: string }> {
+  const r = await req("/api/gmail/draft", { method: "POST", headers: authHeaders(), body: JSON.stringify({ to, subject, body, threadId, inReplyTo }) });
+  return r.json();
+}
+export async function composeEmail(broker: string, brokerEmail: string, context: string, loadId?: string): Promise<{ text: string }> {
+  const r = await req("/api/ai/compose", { method: "POST", headers: authHeaders(), body: JSON.stringify({ broker, brokerEmail, context, loadId }) });
+  return r.json();
+}
+export async function getGmailBrokers(): Promise<{ name: string; domains: string[]; detected: boolean }[]> {
+  const r = await req("/api/gmail/brokers", { headers: authHeaders() });
+  return r.json();
+}

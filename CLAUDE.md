@@ -248,6 +248,76 @@ Agentic tool-use loop (up to 8 iterations). Tools:
 
 `draft_outreach` makes a nested Claude call inside the tool execution — it fetches the last 30 delivered loads to compute real avg RPM and avg driver pay, then generates a brief channel-appropriate message. The message is included in the action object so the UI can display it inline.
 
+## Gmail integration — Email tab
+
+The **Email** tab (`backend/src/gmail.ts`) wires Joe's Gmail inbox to the dispatch board. It cross-references broker names from the loads table with their email domains and uses past thread history to replicate Joe's exact writing style when drafting replies.
+
+### Required env vars (backend)
+| Variable | Notes |
+|----------|-------|
+| `GMAIL_CLIENT_ID` | Google OAuth 2.0 client ID |
+| `GMAIL_CLIENT_SECRET` | Google OAuth 2.0 client secret |
+| `GMAIL_REFRESH_TOKEN` | Offline refresh token obtained via OAuth consent flow |
+| `GMAIL_USER_EMAIL` | Joe's Gmail address (default: `hawkinsonjh@gmail.com`) |
+
+### `backend/src/gmail.ts`
+- `getAccessToken()` — exchanges refresh token for access token; caches with 60s buffer before expiry
+- `searchInbox(q, limit)` — searches Gmail threads using `labelIds=INBOX`; returns `ThreadSummary[]` (no message bodies, just metadata for the list view)
+- `getThread(threadId)` — fetches full thread with decoded `text/plain` bodies; marks each message `isFromMe` based on From header matching `GMAIL_USER_EMAIL` or `loadedlogisticsnc.com`
+- `createDraft(to, subject, body, inReplyTo?, references?, threadId?)` — creates a Gmail draft; encodes as `base64url` RFC 2822 message; optionally threads it
+- `fetchStyleExamples(brokerEmail, limit)` — queries `in:sent to:<domain>` to get Joe's past emails to that broker; used by `/api/ai/compose` to extract style
+- `BROKER_DOMAINS` — lookup table mapping broker display names to email domains (TQL, RXO, MegaCorp, Armstrong, Echo, Coyote, CH Robinson, etc.)
+- `detectBroker(emailAddr)` — reverse-lookup: given an email address, returns the matching broker display name
+- `buildBrokerQuery(extra?)` — builds a Gmail search string targeting all known broker domains via `from:(domain1 OR domain2 …)`
+
+### Backend routes
+```
+GET  /api/gmail/inbox?q=<extra>&limit=20   — search inbox, default: all broker domains last 60d
+GET  /api/gmail/thread/:id                 — full thread with decoded message bodies
+POST /api/gmail/draft                      — create Gmail draft { to, subject, body, threadId?, inReplyTo? }
+POST /api/ai/compose                       — AI-compose in Joe's voice { broker, brokerEmail, context, loadId? }
+GET  /api/gmail/brokers                    — board brokers enriched with known email domains
+```
+
+### `/api/ai/compose` flow
+1. Fetches load details from DB if `loadId` provided
+2. Calls `fetchStyleExamples(brokerEmail)` — pulls up to 8 sent emails to that broker's domain
+3. Injects examples into Claude's system prompt alongside Joe's hardcoded style rules
+4. Generates a short, casual email (1–4 sentences) in Joe's voice
+5. Returns `{ text: string }` — the draft body including Joe's signature block
+
+Joe's signature block (always appended):
+```
+Joseph Hawkinson
+Owner & Founder
+Loaded Logistics
+(704)-962-4987
+www.loadedlogisticsnc.com
+```
+
+### Frontend `Email` component (App.tsx)
+Three-panel layout:
+- **Left sidebar** (300px): inbox thread list with broker pill tags, search field, "Compose" button
+- **Main panel**: thread conversation view (bubble layout, sent=green right, received=dark left) with "Draft Reply with AI" button
+- **Compose panel**: broker picker (from board), To/Subject fields, context textarea, "Draft with AI" → editable textarea → "Save to Gmail Drafts"
+
+Broker picker is pre-populated from `loads` state — brokers on the board appear as chips. Clicking "Draft Reply with AI" on an open thread pre-fills To/Subject from the thread.
+
+### Writing style profile (learned from Gmail)
+Key broker contacts found in Joe's inbox:
+- TQL: `RSalinasSolorio@tql.com` (Rudy Salinas Solorio) — most frequent
+- RXO: `smbcr@rxo.com`, `Terry.Googer@rxo.com`, `alyssa.souder@rxo.com`
+- MegaCorp: `teamwaugh@megacorplogistics.com`, `teamthurston@megacorplogistics.com`
+- Armstrong: `tschaefer@armstrongtransport.com` (Tucker Schaefer)
+
+Joe's style patterns:
+- Confirmations: "Signed RC", "Signed RC for Jeremy C"
+- Booking: "Let's go ahead and book it! Driver is [Name]"
+- Rate negotiation: "Can you do $X since it's a weekend one?"
+- Inquiry format: MC#, pickup/dropoff city, trip miles, ref# — from load posted on DAT
+- Status: "We're in route", "On site been waiting"
+- Casual: "brother", "Yessir", "boss"
+
 ## Planned but not implemented
 
-The `emails` and `digests` tables are stubbed for Phase 2: wiring live Gmail inboxes so rate confirmations land in the Rate Cons tab automatically. The existing `POST /api/ai/extract` extractor is what the Phase 2 email worker will reuse.
+The `emails` and `digests` tables are stubbed for Phase 2: auto-importing rate confirmations from Gmail directly into the Rate Cons tab. The existing `POST /api/ai/extract` parser is what the Phase 2 email worker will reuse.

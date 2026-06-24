@@ -1324,6 +1324,281 @@ function Recruiting({loads}){
   );
 }
 
+/* ============================ EMAIL ============================ */
+function Email({loads}){
+  const [inbox,setInbox]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [selectedId,setSelectedId]=useState(null);
+  const [thread,setThread]=useState(null);
+  const [threadLoading,setThreadLoading]=useState(false);
+  const [showCompose,setShowCompose]=useState(false);
+  const [composeBroker,setComposeBroker]=useState("");
+  const [composeTo,setComposeTo]=useState("");
+  const [composeSubject,setComposeSubject]=useState("");
+  const [composeContext,setComposeContext]=useState("");
+  const [draftText,setDraftText]=useState("");
+  const [drafting,setDrafting]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [saveMsg,setSaveMsg]=useState("");
+  const [searchQ,setSearchQ]=useState("");
+  const [err,setErr]=useState("");
+
+  const boardBrokers=useMemo(()=>{
+    const seen=new Set();
+    return loads.filter(l=>l.broker&&!seen.has(l.broker)&&seen.add(l.broker)).map(l=>l.broker);
+  },[loads]);
+
+  async function loadInbox(q=""){
+    setLoading(true); setErr("");
+    try{ const data=await api.getGmailInbox(q,20); setInbox(data); }
+    catch(e){ setErr("Gmail: "+String(e).replace("Error: ","")); }
+    setLoading(false);
+  }
+
+  useEffect(()=>{ loadInbox(); },[]);
+
+  async function openThread(t){
+    setSelectedId(t.id); setShowCompose(false); setThread(null); setThreadLoading(true); setErr("");
+    try{
+      const data=await api.getGmailThread(t.id); setThread(data);
+    }catch(e){ setErr(String(e)); }
+    setThreadLoading(false);
+  }
+
+  function startReply(){
+    if(!thread) return;
+    const brokerMsg=thread.messages.find(m=>!m.isFromMe);
+    const fromAddr=brokerMsg?.from||thread.fromAddr||"";
+    const email=fromAddr.match(/<(.+)>/)?.[1]||fromAddr;
+    setComposeTo(email);
+    setComposeSubject("Re: "+thread.subject);
+    setComposeBroker(thread.broker||"");
+    setComposeContext(""); setDraftText(""); setSaveMsg("");
+    setShowCompose(true);
+  }
+
+  function startCompose(){
+    setSelectedId(null); setThread(null);
+    setComposeBroker(""); setComposeTo(""); setComposeSubject(""); setComposeContext(""); setDraftText(""); setSaveMsg("");
+    setShowCompose(true);
+  }
+
+  async function doDraft(){
+    setDrafting(true); setDraftText(""); setErr("");
+    try{
+      const res=await api.composeEmail(composeBroker,composeTo,composeContext,undefined);
+      setDraftText(res.text);
+    }catch(e){ setErr(String(e)); }
+    setDrafting(false);
+  }
+
+  async function doSaveDraft(){
+    setSaving(true); setErr("");
+    try{
+      await api.saveGmailDraft(composeTo,composeSubject||"(Loaded Logistics)",draftText,thread?.id);
+      setSaveMsg("Draft saved to Gmail!"); setTimeout(()=>setSaveMsg(""),4000);
+    }catch(e){ setErr(String(e)); }
+    setSaving(false);
+  }
+
+  const panelH={background:C.panel,borderRadius:10,overflow:"hidden",display:"flex",flexDirection:"column" as const};
+
+  return (
+    <div style={{display:"flex",gap:12,height:"calc(100vh - 220px)",minHeight:480}}>
+      {/* ---- Sidebar: inbox ---- */}
+      <div style={{width:300,flexShrink:0,...panelH}}>
+        {/* header */}
+        <div style={{padding:"11px 13px",borderBottom:`1px solid ${C.line}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+          <Label>Broker Inbox</Label>
+          <button onClick={startCompose}
+            style={{fontFamily:mono,fontSize:11,color:C.bg,background:C.amber,border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer"}}>
+            + Compose
+          </button>
+        </div>
+        {/* search */}
+        <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.lineSoft}`}}>
+          <input value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&loadInbox(searchQ)}
+            placeholder="Search broker emails…"
+            style={{width:"100%",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:6,padding:"6px 10px",
+              fontFamily:mono,fontSize:11.5,color:C.ink,outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        {/* list */}
+        <div style={{flex:1,overflowY:"auto"}}>
+          {loading && <div style={{padding:"14px 14px",fontFamily:mono,fontSize:12,color:C.dim}}>Loading inbox…</div>}
+          {!loading && inbox.length===0 && (
+            <div style={{padding:16,fontFamily:mono,fontSize:11.5,color:C.faint,lineHeight:1.5}}>
+              {err ? err : "No broker threads found. Check Gmail env vars in backend."}
+            </div>
+          )}
+          {inbox.map(t=>(
+            <div key={t.id} onClick={()=>openThread(t)}
+              style={{padding:"9px 13px",borderBottom:`1px solid ${C.lineSoft}`,cursor:"pointer",
+                background:selectedId===t.id?C.panel2:"transparent",
+                borderLeft:selectedId===t.id?`3px solid ${C.amber}`:"3px solid transparent",
+                transition:"background .1s"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginBottom:2}}>
+                <span style={{fontFamily:sans,fontSize:12.5,fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  {t.broker||t.fromAddr.split("<")[0].trim().split("@")[0]}
+                </span>
+                {t.broker && <Pill color={C.amber} style={{flexShrink:0}}>{t.broker}</Pill>}
+              </div>
+              <div style={{fontFamily:sans,fontSize:11.5,color:C.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.subject}</div>
+              <div style={{fontFamily:mono,fontSize:10,color:C.faint,marginTop:2}}>{t.snippet?.slice(0,55)}{t.snippet?.length>55?"…":""}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- Main panel ---- */}
+      <div style={{flex:1,...panelH}}>
+        {/* Error banner */}
+        {err && (
+          <div style={{padding:"8px 14px",background:C.redDim,borderBottom:`1px solid ${C.red}44`,fontFamily:mono,fontSize:11.5,color:C.red}}>
+            {err}
+          </div>
+        )}
+
+        {/* Thread view */}
+        {thread && !showCompose && (
+          <>
+            <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.line}`,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontFamily:sans,fontSize:14,fontWeight:700,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{thread.subject}</div>
+                <div style={{fontFamily:mono,fontSize:10.5,color:C.dim,marginTop:2}}>{thread.fromAddr} · {thread.messageCount} messages</div>
+              </div>
+              <button onClick={startReply}
+                style={{flexShrink:0,fontFamily:mono,fontSize:11.5,fontWeight:700,color:C.bg,background:C.green,
+                  border:"none",borderRadius:6,padding:"7px 14px",cursor:"pointer"}}>
+                Draft Reply with AI
+              </button>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+              {thread.messages.map((m,i)=>(
+                <div key={m.id} style={{
+                  alignSelf:m.isFromMe?"flex-end":"flex-start",
+                  maxWidth:"82%",
+                  background:m.isFromMe?C.greenDim:C.panel2,
+                  borderRadius:8,
+                  padding:"9px 13px",
+                  border:`1px solid ${m.isFromMe?C.green+"44":C.line}`,
+                }}>
+                  <div style={{fontFamily:mono,fontSize:9.5,color:C.faint,marginBottom:4,letterSpacing:.3}}>
+                    {m.isFromMe?"You":"Broker"} · {m.date?.slice(0,22)||""}
+                  </div>
+                  <div style={{fontFamily:sans,fontSize:12.5,color:C.ink,whiteSpace:"pre-wrap",wordBreak:"break-word",lineHeight:1.45}}>
+                    {m.body.length>1200?m.body.slice(0,1200)+"…":m.body}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Thread loading */}
+        {threadLoading && (
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:mono,fontSize:12,color:C.dim}}>
+            Loading thread…
+          </div>
+        )}
+
+        {/* Compose panel */}
+        {showCompose && (
+          <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+              <Label>Compose Email</Label>
+              <button onClick={()=>{setShowCompose(false);}}
+                style={{fontFamily:mono,fontSize:11,color:C.dim,background:"transparent",border:`1px solid ${C.line}`,
+                  borderRadius:5,padding:"3px 9px",cursor:"pointer"}}>✕ Close</button>
+            </div>
+
+            {/* Broker picker from board */}
+            <div style={{marginBottom:12}}>
+              <Label style={{marginBottom:5}}>From your board</Label>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
+                {boardBrokers.slice(0,10).map(b=>(
+                  <button key={b} onClick={()=>setComposeBroker(b)}
+                    style={{fontFamily:mono,fontSize:11,color:composeBroker===b?C.bg:C.ink,
+                      background:composeBroker===b?C.amber:C.panel2,
+                      border:`1px solid ${composeBroker===b?C.amber:C.line}`,
+                      borderRadius:5,padding:"4px 10px",cursor:"pointer"}}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* To / Subject */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div>
+                <Label style={{marginBottom:4}}>To (email)</Label>
+                <input value={composeTo} onChange={e=>setComposeTo(e.target.value)} placeholder="broker@tql.com"
+                  style={{width:"100%",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,
+                    padding:"8px 11px",fontFamily:mono,fontSize:12,color:C.ink,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <Label style={{marginBottom:4}}>Subject</Label>
+                <input value={composeSubject} onChange={e=>setComposeSubject(e.target.value)} placeholder="Load inquiry"
+                  style={{width:"100%",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,
+                    padding:"8px 11px",fontFamily:mono,fontSize:12,color:C.ink,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+            </div>
+
+            {/* Context */}
+            <div style={{marginBottom:12}}>
+              <Label style={{marginBottom:4}}>What do you want to say?</Label>
+              <textarea value={composeContext} onChange={e=>setComposeContext(e.target.value)}
+                placeholder="e.g., Ask about load from Charlotte to Atlanta on Monday, rate around $1,800…"
+                rows={3}
+                style={{width:"100%",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,
+                  padding:"8px 11px",fontFamily:sans,fontSize:13,color:C.ink,outline:"none",
+                  resize:"vertical",boxSizing:"border-box"}}/>
+            </div>
+
+            <button onClick={doDraft} disabled={drafting||!composeContext.trim()}
+              style={{fontFamily:mono,fontSize:13,fontWeight:700,color:C.bg,
+                background:(drafting||!composeContext.trim())?C.faint:C.amber,
+                border:"none",borderRadius:7,padding:"9px 22px",cursor:(drafting||!composeContext.trim())?"default":"pointer",marginBottom:16}}>
+              {drafting?"Drafting…":"Draft with AI"}
+            </button>
+
+            {/* Draft result */}
+            {draftText && (
+              <div>
+                <Label style={{marginBottom:6}}>Draft — edit before saving</Label>
+                <textarea value={draftText} onChange={e=>setDraftText(e.target.value)}
+                  rows={12}
+                  style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:7,
+                    padding:"10px 14px",fontFamily:mono,fontSize:12.5,color:C.ink,outline:"none",
+                    resize:"vertical",lineHeight:1.5,boxSizing:"border-box"}}/>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginTop:8}}>
+                  <button onClick={doSaveDraft} disabled={saving}
+                    style={{fontFamily:mono,fontSize:13,fontWeight:700,color:C.bg,
+                      background:saving?C.faint:C.green,border:"none",borderRadius:7,
+                      padding:"9px 20px",cursor:saving?"default":"pointer"}}>
+                    {saving?"Saving…":"Save to Gmail Drafts"}
+                  </button>
+                  {saveMsg && <span style={{fontFamily:mono,fontSize:12,color:C.green}}>{saveMsg}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!thread && !threadLoading && !showCompose && (
+          <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",gap:10}}>
+            <div style={{fontFamily:mono,fontSize:13,color:C.faint}}>Select a thread or compose a new email</div>
+            <div style={{fontFamily:mono,fontSize:11,color:C.faint,maxWidth:320,textAlign:"center" as const,lineHeight:1.5}}>
+              Cross-references your board brokers with Gmail. AI drafts replies in your voice using your past emails as examples.
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ============================ AGENTS ============================ */
 function Agents({onRefresh}){
   const [analysis,setAnalysis]=useState(null);
@@ -1517,7 +1792,7 @@ function Agents({onRefresh}){
 }
 
 /* ============================ APP ============================ */
-const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["chat","Team"],["copilot","Copilot"],["agents","Agents"],["recruiting","Recruiting"]];
+const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["email","Email"],["chat","Team"],["copilot","Copilot"],["agents","Agents"],["recruiting","Recruiting"]];
 export default function App(){
   const [authed,setAuthed]=useState(!!api.token());
   const [loads,setLoads]=useState([]);
@@ -1598,6 +1873,7 @@ export default function App(){
         {view==="monthly" && <MonthlyPnL loads={loads}/>}
         {view==="lanes" && <LaneBook loads={loads}/>}
         {view==="inbox" && <Inbox onAdd={addLoad}/>}
+        {view==="email" && <Email loads={loads}/>}
         {view==="chat" && <Chat loads={loads}/>}
         {view==="copilot" && <Copilot loads={loads}/>}
         {view==="agents" && <Agents onRefresh={refresh}/>}
