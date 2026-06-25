@@ -117,7 +117,8 @@ app.post("/api/messages", requireAuth, async (req, res) => {
 /* ------------------------------- AI proxy -------------------------------- */
 // Keeps your Anthropic key on the server. Used by Rate Cons extraction + Copilot.
 async function callAnthropic(messages: any[], system: string, maxTokens = 1200) {
-  const key = process.env.ANTHROPIC_API_KEY;
+  // Strip whitespace and accidental wrapping quotes — common when pasting into a host's env UI.
+  const key = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
   if (!key) throw new Error("ANTHROPIC_API_KEY not set");
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

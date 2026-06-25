@@ -4,7 +4,8 @@ const API_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-6";
 
 function getKey(): string {
-  const k = process.env.ANTHROPIC_API_KEY;
+  // Strip whitespace and accidental wrapping quotes — common when pasting into a host's env UI.
+  const k = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
   if (!k) throw new Error("ANTHROPIC_API_KEY not set");
   return k;
 }
