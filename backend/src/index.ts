@@ -128,7 +128,10 @@ async function callAnthropic(messages: any[], system: string, maxTokens = 1200) 
     },
     body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: maxTokens, system, messages }),
   });
-  if (!r.ok) throw new Error("Anthropic error " + r.status);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`Anthropic error ${r.status}${body ? ": " + body.slice(0, 200) : ""}`);
+  }
   const data: any = await r.json();
   return (data.content || []).map((c: any) => (c.type === "text" ? c.text : "")).join("\n");
 }

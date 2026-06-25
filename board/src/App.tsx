@@ -1048,7 +1048,7 @@ function Recruiting({loads}){
     if(!goal.trim()||executing) return;
     setExecuting(true); setExecErr(""); setExecResult(null); setShowTrace(false);
     try{ const r=await api.runRecruitingAgent(goal.trim()); setExecResult(r); loadCands(); }
-    catch{ setExecErr("Agent failed — check that ANTHROPIC_API_KEY is set."); }
+    catch(e){ setExecErr(String(e).replace("Error: ","")); }
     setExecuting(false);
   }
 
@@ -1774,7 +1774,7 @@ function Agents({onRefresh}){
   async function analyze(){
     setAnalyzing(true); setAnalysisErr(""); setAnalysis(null);
     try{ setAnalysis(await api.runAnalysis()); }
-    catch(e){ setAnalysisErr("Analysis failed — check that ANTHROPIC_API_KEY is set on the backend."); }
+    catch(e){ setAnalysisErr("Analysis failed · "+String(e).replace("Error: ","")); }
     setAnalyzing(false);
   }
 
@@ -1785,7 +1785,7 @@ function Agents({onRefresh}){
       const r=await api.runExecutorWorkflow(goal.trim());
       setExecResult(r);
       onRefresh();
-    }catch(e){ setExecErr("Execution failed — check that ANTHROPIC_API_KEY is set on the backend."); }
+    }catch(e){ setExecErr("Execution failed · "+String(e).replace("Error: ","")); }
     setExecuting(false);
   }
 

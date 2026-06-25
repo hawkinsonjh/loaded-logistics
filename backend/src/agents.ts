@@ -19,7 +19,10 @@ async function anthropic(body: object): Promise<any> {
     },
     body: JSON.stringify({ model: MODEL, ...body }),
   });
-  if (!r.ok) throw new Error("Anthropic error " + r.status);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`Anthropic error ${r.status}${body ? ": " + body.slice(0, 200) : ""}`);
+  }
   return r.json();
 }
 

@@ -12,7 +12,13 @@ function authHeaders(): Record<string, string> {
 async function req(path: string, opts: RequestInit = {}) {
   const r = await fetch(BASE + path, opts);
   if (r.status === 401) { logout(); throw new Error("HTTP 401"); }
-  if (!r.ok) throw new Error("HTTP " + r.status);
+  if (!r.ok) {
+    // Surface the backend's actual error body (e.g. "ANTHROPIC_API_KEY not set",
+    // "Anthropic error 401") instead of a bare status code, so failures are diagnosable.
+    let detail = "";
+    try { const e = await r.json(); detail = e?.error || ""; } catch { /* non-JSON body */ }
+    throw new Error(detail ? `HTTP ${r.status}: ${detail}` : `HTTP ${r.status}`);
+  }
   return r;
 }
 
