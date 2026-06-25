@@ -52,7 +52,7 @@ export const BROKER_DOMAINS: Record<string, string[]> = {
   "TQL":                ["tql.com"],
   "RXO":                ["rxo.com", "xpo.com/freight"],
   "MegaCorp":           ["megacorplogistics.com"],
-  "Armstrong":          ["armstrongtransport.com"],
+  "Armstrong":          ["armstrongtransport.com", "powerhouselogistics.com"],
   "Echo":               ["echo.com", "echogloballogistics.com"],
   "Coyote":             ["coyote.com"],
   "CH Robinson":        ["chrobinson.com"],
@@ -63,8 +63,34 @@ export const BROKER_DOMAINS: Record<string, string[]> = {
   "Mode":               ["modeglobal.com"],
 };
 
+// Trusted contacts whose emails bypass subject-keyword filtering and auto-approve on the board.
+// hello@highway.com is Armstrong's automated rate-con delivery system.
+export const TRUSTED_RATECON_SENDERS: Record<string, string> = {
+  "tschaefer@armstrongtransport.com": "Armstrong",
+  "jortiz@armstrongtransport.com":    "Armstrong",
+  "julia@powerhouselogistics.com":    "Armstrong",
+  "tucker@powerhouselogistics.com":   "Armstrong",
+  "hello@highway.com":                "Armstrong",
+};
+
+export function isTrustedRateConSender(emailAddr: string): boolean {
+  const lc = emailAddr.toLowerCase();
+  return Object.keys(TRUSTED_RATECON_SENDERS).some(e => lc.includes(e));
+}
+
+// Build a Gmail search that targets trusted senders without subject filters
+export function buildTrustedSenderQuery(): string {
+  const senders = Object.keys(TRUSTED_RATECON_SENDERS);
+  const fromParts = senders.map(e => `from:${e}`).join(" OR ");
+  return `(${fromParts}) newer_than:30d`;
+}
+
 export function detectBroker(emailAddr: string): string | null {
   const lc = emailAddr.toLowerCase();
+  // Check trusted senders first for exact matches
+  for (const [email, broker] of Object.entries(TRUSTED_RATECON_SENDERS)) {
+    if (lc.includes(email)) return broker;
+  }
   for (const [broker, domains] of Object.entries(BROKER_DOMAINS)) {
     if (domains.some(d => lc.includes(d))) return broker;
   }

@@ -6,7 +6,7 @@ import { runAnalyst, runExecutor } from "./agents.js";
 import { generateSocialPost, runRecruitingAgent } from "./recruiting.js";
 import {
   searchInbox, getThread, createDraft, fetchStyleExamples,
-  buildBrokerQuery, BROKER_DOMAINS, detectBroker,
+  buildBrokerQuery, buildTrustedSenderQuery, BROKER_DOMAINS, detectBroker,
 } from "./gmail.js";
 import {
   processRateCon, approvePending, rejectPending, getRateConQueue,
@@ -368,19 +368,33 @@ app.get("/api/gmail/ratecons", requireAuth, async (_req, res) => {
 // POST /api/gmail/ratecons/scan — search inbox for new rate cons and run the two-agent pipeline
 app.post("/api/gmail/ratecons/scan", requireAuth, async (_req, res) => {
   try {
-    // Search Gmail for likely rate con emails from broker domains
-    const q2 = buildBrokerQuery(
+    // Two searches: (1) broker domains with rate-con subject keywords, (2) trusted senders with no subject filter
+    const brokerQ = buildBrokerQuery(
       '(subject:"rate confirmation" OR subject:"rate con" OR subject:"load confirmation" OR subject:"booking") newer_than:30d'
     );
-    const threads = await searchInbox(q2, 30);
+    const trustedQ = buildTrustedSenderQuery();
+
+    const [brokerThreads, trustedThreads] = await Promise.all([
+      searchInbox(brokerQ, 30),
+      searchInbox(trustedQ, 30),
+    ]);
+
+    // Merge, dedup by thread id (trusted sender threads may overlap with broker search)
+    const seen = new Set<string>();
+    const allThreads = [...trustedThreads, ...brokerThreads].filter(t => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+
     const results = [];
-    for (const t of threads) {
+    for (const t of allThreads) {
       try {
         const r = await processRateCon(t.id);
         results.push(r);
       } catch { /* skip individual failures */ }
     }
-    res.json({ scanned: threads.length, results });
+    res.json({ scanned: allThreads.length, results });
   } catch (e: any) { res.status(503).json({ error: e.message }); }
 });
 

@@ -7,12 +7,12 @@
 // Below that, the load lands in the human review queue before hitting the board.
 
 import { q } from "./db.js";
-import { getThread } from "./gmail.js";
+import { getThread, isTrustedRateConSender } from "./gmail.js";
 
 const MODEL = "claude-sonnet-4-6";
 
 function getKey(): string {
-  const k = process.env.ANTHROPIC_API_KEY;
+  const k = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^['"]|['"]$/g, "");
   if (!k) throw new Error("ANTHROPIC_API_KEY not set");
   return k;
 }
@@ -27,7 +27,10 @@ async function claude(system: string, user: string, maxTokens = 700): Promise<st
     },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
   });
-  if (!r.ok) throw new Error("Anthropic error " + r.status);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`Anthropic error ${r.status}${body ? ": " + body.slice(0, 200) : ""}`);
+  }
   const d: any = await r.json();
   return (d.content || []).filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
 }
@@ -120,6 +123,10 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
     .map(m => (m.isFromMe ? "[Joe]:" : "[Broker]:") + " " + m.body)
     .join("\n\n---\n\n");
 
+  // Detect trusted sender — emails from Tucker Schaefer or Julia Ortiz at Armstrong
+  const senderAddr = brokerMsg?.from || thread.fromAddr || "";
+  const trustedSender = isTrustedRateConSender(senderAddr);
+
   // Load known brokers from DB for reviewer context
   const bRows = await q("select distinct broker from loads where broker is not null").catch(() => []);
   const boardBrokers = bRows.map((r: any) => r.broker).filter(Boolean);
@@ -127,8 +134,19 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
   // Agent 1 — extract
   const extracted = await extractLoad(transcript);
 
-  // Agent 2 — review and correct
-  const review = await reviewExtraction(extracted, transcript, boardBrokers);
+  // Agent 2 — review and correct (skip for trusted senders to save API calls)
+  let review: ReviewResult;
+  if (trustedSender) {
+    // Trusted contacts: auto-approve, still run extraction QA for corrections but force approve
+    review = await reviewExtraction(extracted, transcript, boardBrokers);
+    review.approved = true;
+    review.confidence = Math.max(review.confidence, 90);
+    if (!review.flags.includes("auto-approved: trusted sender")) {
+      review.flags = [`trusted sender: ${senderAddr}`, ...review.flags];
+    }
+  } else {
+    review = await reviewExtraction(extracted, transcript, boardBrokers);
+  }
 
   // Apply reviewer corrections
   const finalLoad = { ...extracted, ...review.corrections };
@@ -141,7 +159,7 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
      returning *`,
     [
       threadId,
-      brokerMsg?.from || thread.fromAddr,
+      senderAddr,
       thread.subject,
       transcript.slice(0, 2000),
       JSON.stringify(finalLoad),
@@ -152,7 +170,7 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
   );
   const emailRow = row[0];
 
-  // Auto-create load if reviewer approved
+  // Auto-create load if reviewer approved (includes all trusted senders)
   if (review.approved) {
     await createLoad(finalLoad, emailRow.id, threadId);
     const updated = await q("select * from emails where id=$1", [emailRow.id]);
