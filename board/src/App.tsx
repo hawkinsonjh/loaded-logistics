@@ -1326,6 +1326,9 @@ function Recruiting({loads}){
 
 /* ============================ EMAIL ============================ */
 function Email({loads}){
+  const [subview,setSubview]=useState("inbox"); // "inbox" | "ratecons"
+
+  // --- inbox state ---
   const [inbox,setInbox]=useState([]);
   const [loading,setLoading]=useState(false);
   const [selectedId,setSelectedId]=useState(null);
@@ -1342,6 +1345,12 @@ function Email({loads}){
   const [saveMsg,setSaveMsg]=useState("");
   const [searchQ,setSearchQ]=useState("");
   const [err,setErr]=useState("");
+
+  // --- rate con review state ---
+  const [rcQueue,setRcQueue]=useState([]);
+  const [rcLoading,setRcLoading]=useState(false);
+  const [rcScanning,setRcScanning]=useState(false);
+  const [rcErr,setRcErr]=useState("");
 
   const boardBrokers=useMemo(()=>{
     const seen=new Set();
@@ -1401,10 +1410,159 @@ function Email({loads}){
     setSaving(false);
   }
 
+  // load rate con queue whenever subview switches to ratecons
+  useEffect(()=>{
+    if(subview==="ratecons") loadRcQueue();
+  },[subview]);
+
+  async function loadRcQueue(){
+    setRcLoading(true); setRcErr("");
+    try{ setRcQueue(await api.getRateConQueue()); }
+    catch(e){ setRcErr(String(e).replace("Error: ","")); }
+    setRcLoading(false);
+  }
+
+  async function doScan(){
+    setRcScanning(true); setRcErr("");
+    try{
+      const res=await api.scanRateCons();
+      setRcQueue(res.results.length ? res.results : await api.getRateConQueue());
+    }catch(e){ setRcErr(String(e).replace("Error: ","")); }
+    setRcScanning(false);
+  }
+
+  async function doApprove(emailId){
+    try{ await api.approveRateCon(emailId); await loadRcQueue(); }
+    catch(e){ setRcErr(String(e).replace("Error: ","")); }
+  }
+
+  async function doReject(emailId){
+    try{ await api.rejectRateCon(emailId); await loadRcQueue(); }
+    catch(e){ setRcErr(String(e).replace("Error: ","")); }
+  }
+
+  function rcConfColor(c){ return c>=80?C.green:c>=60?C.amber:C.red; }
+
   const panelH={background:C.panel,borderRadius:10,overflow:"hidden",display:"flex",flexDirection:"column" as const};
 
   return (
-    <div style={{display:"flex",gap:12,height:"calc(100vh - 220px)",minHeight:480}}>
+    <div style={{display:"flex",flexDirection:"column" as const,gap:12}}>
+
+      {/* ---- Subview nav ---- */}
+      <div className="flex" style={{gap:3,background:C.panel,border:`1px solid ${C.line}`,borderRadius:9,padding:3,width:"fit-content"}}>
+        {[["inbox","Broker Inbox"],["ratecons","Rate Con Review"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setSubview(id)}
+            style={{fontFamily:mono,fontSize:12,fontWeight:600,color:subview===id?C.bg:C.dim,
+              background:subview===id?C.amber:C.panel,border:"none",borderRadius:7,
+              padding:"6px 16px",cursor:"pointer",letterSpacing:.3}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ---- Rate Con Review ---- */}
+      {subview==="ratecons" && (
+        <div>
+          {/* header row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+            <div>
+              <div style={{fontFamily:sans,fontSize:14,fontWeight:700,color:C.ink}}>Rate Con Review Queue</div>
+              <div style={{fontFamily:mono,fontSize:11,color:C.faint,marginTop:2}}>
+                Agent 1 extracts · Agent 2 reviews · auto-approves if confidence ≥ 80
+              </div>
+            </div>
+            <button onClick={doScan} disabled={rcScanning}
+              style={{fontFamily:mono,fontSize:12,fontWeight:700,color:C.bg,
+                background:rcScanning?C.faint:C.amber,border:"none",borderRadius:7,
+                padding:"8px 18px",cursor:rcScanning?"default":"pointer"}}>
+              {rcScanning?"Scanning…":"Scan Gmail for Rate Cons"}
+            </button>
+          </div>
+
+          {rcErr && <div style={{marginBottom:10,padding:"8px 12px",background:C.redDim,border:`1px solid ${C.red}44`,borderRadius:7,fontFamily:mono,fontSize:12,color:C.red}}>{rcErr}</div>}
+          {rcLoading && <div style={{fontFamily:mono,fontSize:12,color:C.dim,padding:10}}>Loading queue…</div>}
+
+          {!rcLoading && rcQueue.length===0 && (
+            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:32,textAlign:"center" as const}}>
+              <div style={{fontFamily:mono,fontSize:13,color:C.faint,marginBottom:8}}>No rate cons processed yet</div>
+              <div style={{fontFamily:mono,fontSize:11,color:C.faint,lineHeight:1.5}}>
+                Click "Scan Gmail for Rate Cons" to pull broker emails,<br/>run the two-agent pipeline, and review results here.
+              </div>
+            </div>
+          )}
+
+          <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
+            {rcQueue.map(rc=>{
+              const ex=rc.extracted||{};
+              const rpm=ex.rate&&ex.miles?ex.rate/ex.miles:null;
+              const confColor=rcConfColor(rc.confidence);
+              const isPending=rc.reviewStatus==="pending";
+              const isApproved=rc.reviewStatus==="approved";
+              const isRejected=rc.reviewStatus==="rejected";
+              return (
+                <div key={rc.emailId} style={{background:C.panel,border:`1px solid ${C.line}`,
+                  borderLeft:`4px solid ${isPending?C.amber:isApproved?C.green:C.faint}`,
+                  borderRadius:10,padding:"12px 14px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:8}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontFamily:sans,fontSize:13.5,fontWeight:700,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {ex.broker||"Unknown broker"} — {ex.origin||"?"} → {ex.dest||"?"}
+                      </div>
+                      <div style={{fontFamily:mono,fontSize:10.5,color:C.dim,marginTop:2}}>{rc.subject}</div>
+                    </div>
+                    <div style={{flexShrink:0,textAlign:"right" as const}}>
+                      <div style={{fontFamily:mono,fontSize:18,fontWeight:700,color:rpm?rpmColor(rpm):C.faint,lineHeight:1}}>
+                        {rpm?"$"+rpm.toFixed(2):"—"}
+                      </div>
+                      <div style={{fontFamily:mono,fontSize:9,color:C.faint,textTransform:"uppercase" as const,letterSpacing:.5}}>rpm</div>
+                    </div>
+                  </div>
+
+                  <div style={{display:"flex",flexWrap:"wrap" as const,gap:10,marginBottom:8,fontFamily:mono,fontSize:12}}>
+                    {ex.rate&&<span style={{color:C.ink}}>${Number(ex.rate).toLocaleString()}</span>}
+                    {ex.miles&&<span style={{color:C.dim}}>{ex.miles} mi</span>}
+                    {ex.date&&<span style={{color:C.dim}}>{ex.date}</span>}
+                    {ex.ref&&<span style={{color:C.faint}}>ref {ex.ref}</span>}
+                    {ex.commodity&&<span style={{color:C.faint}}>{ex.commodity}</span>}
+                  </div>
+
+                  {/* Reviewer output */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap" as const}}>
+                    <div style={{fontFamily:mono,fontSize:11,fontWeight:700,color:confColor,
+                      background:confColor+"22",border:`1px solid ${confColor}44`,borderRadius:4,padding:"2px 8px"}}>
+                      {rc.confidence}% confidence
+                    </div>
+                    {isApproved&&<Pill color={C.green}>Auto-approved</Pill>}
+                    {isPending&&<Pill color={C.amber}>Pending review</Pill>}
+                    {isRejected&&<Pill color={C.faint}>Rejected</Pill>}
+                    {rc.loadId&&<Pill color={C.blue}>On board</Pill>}
+                    {(rc.flags||[]).map((f,i)=><Pill key={i} color={C.red}>{f}</Pill>)}
+                  </div>
+
+                  {isPending&&(
+                    <div style={{display:"flex",gap:8,marginTop:4}}>
+                      <button onClick={()=>doApprove(rc.emailId)}
+                        style={{fontFamily:mono,fontSize:12,fontWeight:700,color:C.bg,
+                          background:C.green,border:"none",borderRadius:6,padding:"6px 16px",cursor:"pointer"}}>
+                        ✓ Approve → Board
+                      </button>
+                      <button onClick={()=>doReject(rc.emailId)}
+                        style={{fontFamily:mono,fontSize:12,color:C.faint,
+                          background:C.panel2,border:`1px solid ${C.line}`,borderRadius:6,padding:"6px 14px",cursor:"pointer"}}>
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ---- Inbox (existing) ---- */}
+      {subview==="inbox" && (
+      <div style={{display:"flex",gap:12,height:"calc(100vh - 280px)",minHeight:480}}>
       {/* ---- Sidebar: inbox ---- */}
       <div style={{width:300,flexShrink:0,...panelH}}>
         {/* header */}
@@ -1595,6 +1753,8 @@ function Email({loads}){
           </div>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }

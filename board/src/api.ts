@@ -137,3 +137,24 @@ export async function getGmailBrokers(): Promise<{ name: string; domains: string
   const r = await req("/api/gmail/brokers", { headers: authHeaders() });
   return r.json();
 }
+
+// Rate con agent pipeline
+export async function getRateConQueue(): Promise<any[]> {
+  const r = await req("/api/gmail/ratecons", { headers: authHeaders() });
+  return r.json();
+}
+export async function scanRateCons(): Promise<{ scanned: number; results: any[] }> {
+  const r = await req("/api/gmail/ratecons/scan", { method: "POST", headers: authHeaders(), body: "{}" });
+  return r.json();
+}
+export async function processRateCon(threadId: string): Promise<any> {
+  const r = await req("/api/gmail/ratecons/process", { method: "POST", headers: authHeaders(), body: JSON.stringify({ threadId }) });
+  return r.json();
+}
+export async function approveRateCon(emailId: string): Promise<any> {
+  const r = await req("/api/gmail/ratecons/" + emailId + "/approve", { method: "POST", headers: authHeaders(), body: "{}" });
+  return r.json();
+}
+export async function rejectRateCon(emailId: string): Promise<void> {
+  await req("/api/gmail/ratecons/" + emailId + "/reject", { method: "POST", headers: authHeaders(), body: "{}" });
+}

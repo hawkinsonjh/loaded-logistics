@@ -8,6 +8,9 @@ import {
   searchInbox, getThread, createDraft, fetchStyleExamples,
   buildBrokerQuery, BROKER_DOMAINS, detectBroker,
 } from "./gmail.js";
+import {
+  processRateCon, approvePending, rejectPending, getRateConQueue,
+} from "./ratecon.js";
 
 const app = express();
 app.use(cors());                 // board is a separate origin; allow it
@@ -348,6 +351,53 @@ Write ONLY the email body + signature. No subject line. No meta commentary.`;
   } catch (e: any) {
     res.status(503).json({ error: e.message });
   }
+});
+
+/* -------------------- rate con agent pipeline -------------------- */
+
+// GET /api/gmail/ratecons — review queue
+app.get("/api/gmail/ratecons", requireAuth, async (_req, res) => {
+  try { res.json(await getRateConQueue()); }
+  catch (e: any) { res.status(503).json({ error: e.message }); }
+});
+
+// POST /api/gmail/ratecons/scan — search inbox for new rate cons and run the two-agent pipeline
+app.post("/api/gmail/ratecons/scan", requireAuth, async (_req, res) => {
+  try {
+    // Search Gmail for likely rate con emails from broker domains
+    const q2 = buildBrokerQuery(
+      '(subject:"rate confirmation" OR subject:"rate con" OR subject:"load confirmation" OR subject:"booking") newer_than:30d'
+    );
+    const threads = await searchInbox(q2, 30);
+    const results = [];
+    for (const t of threads) {
+      try {
+        const r = await processRateCon(t.id);
+        results.push(r);
+      } catch { /* skip individual failures */ }
+    }
+    res.json({ scanned: threads.length, results });
+  } catch (e: any) { res.status(503).json({ error: e.message }); }
+});
+
+// POST /api/gmail/ratecons/process — process a specific thread
+app.post("/api/gmail/ratecons/process", requireAuth, async (req, res) => {
+  const { threadId } = req.body || {};
+  if (!threadId) return res.status(400).json({ error: "threadId required" });
+  try { res.json(await processRateCon(threadId)); }
+  catch (e: any) { res.status(503).json({ error: e.message }); }
+});
+
+// POST /api/gmail/ratecons/:id/approve — human approves a pending extraction
+app.post("/api/gmail/ratecons/:id/approve", requireAuth, async (req, res) => {
+  try { res.json(await approvePending(req.params.id)); }
+  catch (e: any) { res.status(400).json({ error: e.message }); }
+});
+
+// POST /api/gmail/ratecons/:id/reject — human rejects a pending extraction
+app.post("/api/gmail/ratecons/:id/reject", requireAuth, async (req, res) => {
+  try { await rejectPending(req.params.id); res.json({ ok: true }); }
+  catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 // GET /api/gmail/brokers — cross-reference: board brokers enriched with known email domains

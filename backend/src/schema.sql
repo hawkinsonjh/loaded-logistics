@@ -60,6 +60,15 @@ create table if not exists emails (
   created_at     timestamptz not null default now()
 );
 
+-- Rate con agent pipeline columns (idempotent)
+alter table emails add column if not exists extracted_json    jsonb;
+alter table emails add column if not exists reviewer_confidence numeric;
+alter table emails add column if not exists reviewer_flags    jsonb;
+alter table emails add column if not exists review_status     text not null default 'pending';
+
+create index if not exists emails_review_status_idx on emails (review_status);
+create index if not exists emails_received_idx      on emails (received_at desc);
+
 create table if not exists digests (
   id           uuid primary key default gen_random_uuid(),
   for_date     date unique,
