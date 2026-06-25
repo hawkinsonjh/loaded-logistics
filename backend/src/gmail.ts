@@ -169,7 +169,13 @@ export async function searchInbox(q: string, maxResults = 20): Promise<ThreadSum
       const last = messages[messages.length - 1] || {};
       const firstHeaders = first.payload?.headers || [];
       const lastHeaders = last.payload?.headers || [];
-      const fromAddr = hdr(firstHeaders, "From");
+      // The broker is the first message in the thread NOT sent by Joe. Many threads are
+      // started by Joe (cold-emailing brokers about DAT loads), so messages[0] is often
+      // Joe himself — fall back to scanning for the first counterparty message.
+      const brokerFrom = messages
+        .map((m: any) => hdr(m.payload?.headers || [], "From"))
+        .find((f: string) => f && !isFromMe(f));
+      const fromAddr = brokerFrom || hdr(firstHeaders, "From");
       results.push({
         id: t.id,
         subject: hdr(firstHeaders, "Subject") || "(no subject)",
