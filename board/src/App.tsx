@@ -93,8 +93,10 @@ function KpiBar({loads}){
 }
 
 /* ============================ LOAD CARD ============================ */
-function LoadCard({l,onAssign,onAdvance,onBack,onDelete,drivers,compact}){
+function LoadCard({l,onAssign,onAdvance,onBack,onDelete,onEdit,drivers,compact}){
   const rpm=computeRpm(l), col=rpmColor(rpm);
+  // A rate con auto-imported from email often lands missing miles/expenses — surface that.
+  const needsInfo = l.source==="email" && (l.miles==null||l.pay==null);
   return (
     <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderLeft:`3px solid ${col}`,
       borderRadius:7,padding:"10px 11px",display:"flex",flexDirection:"column",gap:7}}>
@@ -105,11 +107,15 @@ function LoadCard({l,onAssign,onAdvance,onBack,onDelete,drivers,compact}){
             {(l.origin||l.dest)?`${l.origin||"?"} → ${l.dest||"?"}`:(l.ref?("REF "+l.ref):(l.date||""))}
           </div>
         </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontFamily:mono,fontSize:18,fontWeight:700,color:col,lineHeight:1}}>{rpm!=null?("$"+rpm.toFixed(2)):"—"}</div>
-          <div style={{fontFamily:mono,fontSize:9,letterSpacing:.5,textTransform:"uppercase",color:col}}>{rpmLabel(rpm)} · rpm</div>
+        <div className="flex items-start" style={{gap:6,flexShrink:0}}>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:mono,fontSize:18,fontWeight:700,color:col,lineHeight:1}}>{rpm!=null?("$"+rpm.toFixed(2)):"—"}</div>
+            <div style={{fontFamily:mono,fontSize:9,letterSpacing:.5,textTransform:"uppercase",color:col}}>{rpmLabel(rpm)} · rpm</div>
+          </div>
+          {onEdit && <IconBtn title="Edit load" onClick={()=>onEdit(l)}>✎</IconBtn>}
         </div>
       </div>
+      {needsInfo && <div style={{fontFamily:mono,fontSize:10,color:C.amber,background:C.amber+"14",borderRadius:5,padding:"3px 7px"}}>imported · add miles / costs ✎</div>}
       <div className="flex items-center" style={{gap:14}}>
         <div><span style={{fontFamily:mono,fontSize:15,fontWeight:600,color:C.ink}}>{money(l.rate)}</span></div>
         <div style={{fontFamily:mono,fontSize:12,color:C.dim}}>{fmt0(l.miles)} mi</div>
@@ -154,7 +160,7 @@ function IconBtn({children,onClick,title,danger}){
 }
 
 /* ============================ BOARD ============================ */
-function Board({loads,patchLoad,removeLoad,drivers,onNewLoad}){
+function Board({loads,patchLoad,removeLoad,drivers,onNewLoad,onEdit}){
   const grouped = useMemo(()=>{
     const g={Available:[],Assigned:[],"In Transit":[],Delivered:[]};
     loads.forEach(l=>{ (g[l.status]||g.Delivered).push(l); });
@@ -199,7 +205,7 @@ function Board({loads,patchLoad,removeLoad,drivers,onNewLoad}){
               </div>
               <div style={{padding:10,display:"flex",flexDirection:"column",gap:9,overflowY:"auto",maxHeight:560}}>
                 {show.length===0 && <div style={{fontFamily:mono,fontSize:11,color:C.faint,padding:"14px 4px",textAlign:"center"}}>{lane==="Available"?"Add a load or pull one from Rate Cons.":"Nothing here."}</div>}
-                {show.map(l=><LoadCard key={l.id} l={l} drivers={drivers} onAssign={assign} onAdvance={advance} onBack={back} onDelete={isDel?null:del} compact={isDel}/>)}
+                {show.map(l=><LoadCard key={l.id} l={l} drivers={drivers} onAssign={assign} onAdvance={advance} onBack={back} onDelete={isDel?null:del} onEdit={onEdit} compact={isDel}/>)}
                 {isDel && list.length>12 && <div style={{fontFamily:mono,fontSize:11,color:C.faint,textAlign:"center",padding:4}}>+{list.length-12} more in Loads ledger</div>}
               </div>
             </div>
@@ -211,7 +217,7 @@ function Board({loads,patchLoad,removeLoad,drivers,onNewLoad}){
 }
 
 /* ============================ LOADS LEDGER ============================ */
-function Ledger({loads}){
+function Ledger({loads,onEdit}){
   const [q,setQ]=useState(""); const [drv,setDrv]=useState("all"); const [sort,setSort]=useState("date");
   const drivers=useMemo(()=>["all",...Array.from(new Set(loads.map(l=>l.driver).filter(Boolean)))],[loads]);
   const rows=useMemo(()=>{
@@ -248,8 +254,9 @@ function Ledger({loads}){
         </div>
         <div style={{maxHeight:600,overflowY:"auto"}}>
           {rows.map((l,idx)=>{const rpm=computeRpm(l);return(
-            <div key={l.id} className="grid grid-cols-2 md:grid-cols-none" style={{gridTemplateColumns:"80px 1fr 92px 56px 52px 70px 64px 64px 60px 66px",
-              gap:8,padding:"9px 12px",background:idx%2?C.bg:C.panel,borderTop:`1px solid ${C.lineSoft}`,alignItems:"center"}}>
+            <div key={l.id} onClick={()=>onEdit&&onEdit(l)} title={onEdit?"Click to edit":undefined}
+              className="grid grid-cols-2 md:grid-cols-none" style={{gridTemplateColumns:"80px 1fr 92px 56px 52px 70px 64px 64px 60px 66px",
+              gap:8,padding:"9px 12px",background:idx%2?C.bg:C.panel,borderTop:`1px solid ${C.lineSoft}`,alignItems:"center",cursor:onEdit?"pointer":"default"}}>
               <div style={{fontFamily:mono,fontSize:11.5,color:C.dim}}>{(l.date||"").slice(5)}</div>
               <div style={{fontFamily:sans,fontSize:12.5,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.broker||"—"}</div>
               <div style={{fontFamily:mono,fontSize:11.5,color:C.dim}}>{l.driver||"—"}{l.unit?(" · "+l.unit):""}</div>
@@ -862,6 +869,80 @@ function NewLoad({onClose,onSave,drivers}){
         <div className="flex justify-end" style={{gap:8,marginTop:16}}>
           <button onClick={onClose} style={{fontFamily:mono,fontSize:12.5,color:C.dim,background:C.raised,border:`1px solid ${C.line}`,borderRadius:7,padding:"9px 15px",cursor:"pointer"}}>Cancel</button>
           <button onClick={save} style={{fontFamily:mono,fontSize:12.5,fontWeight:700,color:C.bg,background:C.amber,border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer"}}>Add load</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ EDIT LOAD ============================ */
+// Full editor for an existing load — lets the dispatcher fill in fields an
+// auto-imported rate con left blank (miles, pay, fuel, dispatch, repair, unit…).
+function EditLoad({load,onClose,onSave,drivers}){
+  const s=v=>(v==null?"":String(v));
+  const [f,setF]=useState({
+    broker:s(load.broker),rate:s(load.rate),miles:s(load.miles),
+    origin:s(load.origin),dest:s(load.dest),date:load.date||"",
+    ref:s(load.ref),commodity:s(load.commodity),unit:s(load.unit),
+    driver:load.driver||"",status:load.status||"Available",
+    pay:s(load.pay),fuel:s(load.fuel),dispatch:s(load.dispatch),repair:s(load.repair),dh:s(load.dh),
+  });
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const numOrNull=v=>{ const t=(v??"").trim(); if(t==="")return null; const n=parseFloat(t); return isNaN(n)?null:n; };
+  const rate=numOrNull(f.rate), miles=numOrNull(f.miles);
+  const rpm=(rate&&miles)?(rate/miles):null;
+  const net=(rate||0)-(numOrNull(f.pay)||0)-(numOrNull(f.fuel)||0)-(numOrNull(f.dispatch)||0)-(numOrNull(f.repair)||0);
+  function save(){
+    const patch={
+      broker:f.broker.trim()||null,
+      rate, miles, rpm,
+      origin:f.origin.trim()||null, dest:f.dest.trim()||null,
+      date:f.date||null, ref:f.ref.trim()||null, commodity:f.commodity.trim()||null,
+      unit:f.unit.trim()||null, dh:numOrNull(f.dh),
+      pay:numOrNull(f.pay), fuel:numOrNull(f.fuel), dispatch:numOrNull(f.dispatch), repair:numOrNull(f.repair),
+      driver:f.driver||null,
+      status:(!f.driver&&f.status==="Assigned")?"Available":f.status,
+    };
+    onSave(load.id,patch);
+  }
+  const inp={width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:6,color:C.ink,padding:"9px 11px",fontFamily:mono,fontSize:12.5};
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"#000000aa",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:18,width:"100%",maxWidth:520,maxHeight:"92vh",overflowY:"auto"}}>
+        <div className="flex items-center justify-between" style={{marginBottom:6}}>
+          <div style={{fontFamily:sans,fontSize:16,fontWeight:700,color:C.ink}}>Edit load</div>
+          {rpm!=null && <Pill color={rpmColor(rpm)} bg={rpmColor(rpm)+"1a"}>rpm ${rpm.toFixed(2)} · {rpmLabel(rpm)}</Pill>}
+        </div>
+        <div style={{fontFamily:mono,fontSize:10.5,color:C.faint,marginBottom:14}}>
+          {load.source==="email"?"Imported from rate con · fill in the blanks":"Manual load"} · net {money(net)}
+        </div>
+        <div className="grid grid-cols-2" style={{gap:10}}>
+          <div className="col-span-2"><Label style={{marginBottom:4}}>Broker</Label><input style={inp} value={f.broker} onChange={e=>set("broker",e.target.value)}/></div>
+          <div><Label style={{marginBottom:4}}>Rate $</Label><input style={inp} value={f.rate} onChange={e=>set("rate",e.target.value)} inputMode="decimal"/></div>
+          <div><Label style={{marginBottom:4}}>Miles</Label><input style={inp} value={f.miles} onChange={e=>set("miles",e.target.value)} inputMode="numeric"/></div>
+          <div><Label style={{marginBottom:4}}>Origin</Label><input style={inp} value={f.origin} onChange={e=>set("origin",e.target.value)} placeholder="Dallas, TX"/></div>
+          <div><Label style={{marginBottom:4}}>Dest</Label><input style={inp} value={f.dest} onChange={e=>set("dest",e.target.value)} placeholder="Memphis, TN"/></div>
+          <div><Label style={{marginBottom:4}}>Pickup</Label><input style={inp} type="date" value={f.date} onChange={e=>set("date",e.target.value)}/></div>
+          <div><Label style={{marginBottom:4}}>Ref / PO#</Label><input style={inp} value={f.ref} onChange={e=>set("ref",e.target.value)}/></div>
+          <div className="col-span-2"><Label style={{marginBottom:4}}>Commodity</Label><input style={inp} value={f.commodity} onChange={e=>set("commodity",e.target.value)}/></div>
+          <div><Label style={{marginBottom:4}}>Unit</Label><input style={inp} value={f.unit} onChange={e=>set("unit",e.target.value)} placeholder="101"/></div>
+          <div><Label style={{marginBottom:4}}>Deadhead mi</Label><input style={inp} value={f.dh} onChange={e=>set("dh",e.target.value)} inputMode="numeric"/></div>
+          <div><Label style={{marginBottom:4}}>Driver pay $</Label><input style={inp} value={f.pay} onChange={e=>set("pay",e.target.value)} inputMode="decimal"/></div>
+          <div><Label style={{marginBottom:4}}>Fuel $</Label><input style={inp} value={f.fuel} onChange={e=>set("fuel",e.target.value)} inputMode="decimal"/></div>
+          <div><Label style={{marginBottom:4}}>Dispatch $</Label><input style={inp} value={f.dispatch} onChange={e=>set("dispatch",e.target.value)} inputMode="decimal"/></div>
+          <div><Label style={{marginBottom:4}}>Repair $</Label><input style={inp} value={f.repair} onChange={e=>set("repair",e.target.value)} inputMode="decimal"/></div>
+          <div><Label style={{marginBottom:4}}>Driver</Label>
+            <select style={{...inp,color:C.ink}} value={f.driver} onChange={e=>set("driver",e.target.value)}>
+              <option value="">Unassigned</option>{drivers.map(d=><option key={d} value={d}>{d}</option>)}
+            </select></div>
+          <div><Label style={{marginBottom:4}}>Status</Label>
+            <select style={{...inp,color:C.ink}} value={f.status} onChange={e=>set("status",e.target.value)}>
+              {LANES.map(st=><option key={st} value={st}>{st}</option>)}
+            </select></div>
+        </div>
+        <div className="flex justify-end" style={{gap:8,marginTop:16}}>
+          <button onClick={onClose} style={{fontFamily:mono,fontSize:12.5,color:C.dim,background:C.raised,border:`1px solid ${C.line}`,borderRadius:7,padding:"9px 15px",cursor:"pointer"}}>Cancel</button>
+          <button onClick={save} style={{fontFamily:mono,fontSize:12.5,fontWeight:700,color:C.bg,background:C.amber,border:"none",borderRadius:7,padding:"9px 18px",cursor:"pointer"}}>Save changes</button>
         </div>
       </div>
     </div>
@@ -1959,6 +2040,7 @@ export default function App(){
   const [view,setView]=useState("board");
   const [ready,setReady]=useState(false);
   const [showNew,setShowNew]=useState(false);
+  const [editing,setEditing]=useState(null);
 
   async function refresh(){
     try{ const rows=await api.getLoads(); setLoads(rows); setReady(true); }
@@ -2026,8 +2108,8 @@ export default function App(){
 
       <div style={{maxWidth:1280,margin:"0 auto",padding:"16px 18px 60px"}}>
         <div style={{marginBottom:16}}><KpiBar loads={loads}/></div>
-        {view==="board" && <Board loads={loads} patchLoad={patchLoad} removeLoad={removeLoad} drivers={drivers} onNewLoad={()=>setShowNew(true)}/>}
-        {view==="loads" && <Ledger loads={loads}/>}
+        {view==="board" && <Board loads={loads} patchLoad={patchLoad} removeLoad={removeLoad} drivers={drivers} onNewLoad={()=>setShowNew(true)} onEdit={setEditing}/>}
+        {view==="loads" && <Ledger loads={loads} onEdit={setEditing}/>}
         {view==="drivers" && <Drivers loads={loads}/>}
         {view==="pnl" && <WeeklyPnL loads={loads}/>}
         {view==="monthly" && <MonthlyPnL loads={loads}/>}
@@ -2047,6 +2129,7 @@ export default function App(){
       </div>
 
       {showNew && <NewLoad drivers={drivers} onClose={()=>setShowNew(false)} onSave={l=>{addLoad(l);setShowNew(false);setView("board");}}/>}
+      {editing && <EditLoad load={editing} drivers={drivers} onClose={()=>setEditing(null)} onSave={(id,patch)=>{patchLoad(id,patch);setEditing(null);}}/>}
     </div>
   );
 }
