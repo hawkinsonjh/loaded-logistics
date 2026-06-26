@@ -5,14 +5,28 @@ import * as api from "./api";
 const SEED: any[] = [];
 
 /* ============================ TOKENS ============================ */
+// Buzz City palette — built from the Loaded Logistics logo colors
 const C = {
-  bg:"#0E1116", panel:"#161B22", panel2:"#1C222B", raised:"#222933",
-  line:"#2A323D", lineSoft:"#222932",
-  ink:"#E9ECF1", dim:"#8B95A3", faint:"#5E6675",
-  amber:"#F2A413", amberHi:"#FFB740",
-  green:"#36D399", greenDim:"#1f6b50",
-  red:"#F0594C", redDim:"#6b2722",
-  blue:"#4DA3FF", purple:"#A78BFA",
+  bg:       "#05070F",   // near-black, deep navy
+  panel:    "#090C18",   // card / sidebar surface (matches logo bg)
+  panel2:   "#0D1020",   // slightly lifted surface
+  raised:   "#111527",   // buttons, inputs
+  line:     "#1A2038",   // borders
+  lineSoft: "#12172D",   // subtle dividers
+  ink:      "#EEF2FF",   // primary text — cool white
+  dim:      "#7880A8",   // secondary text
+  faint:    "#424B6E",   // muted / placeholder
+  // Brand accents — pulled directly from the LL logo SVG
+  amber:    "#16C7DE",   // teal (was amber — used for primary actions & Available lane)
+  amberHi:  "#3DD9EE",   // lighter teal for hovers
+  green:    "#00E5A0",   // delivered / positive / profit
+  greenDim: "#00402E",
+  red:      "#FF4060",   // thin margin / loss
+  redDim:   "#3D0E18",
+  blue:     "#4DAAFF",   // In Transit
+  purple:   "#8B5CFF",   // Assigned / secondary accent (from logo)
+  teal:     "#16C7DE",   // alias kept for direct use
+  tealGlow: "#16C7DE22", // subtle teal haze
 };
 const LANES = ["Available","Assigned","In Transit","Delivered"];
 const DRIVER_ORDER = ["TJ","John","Chris","Jeremy","Derek"];
@@ -39,7 +53,7 @@ function rpmLabel(rpm){
   return "thin";
 }
 function laneColor(s){
-  return s==="Available"?C.amber : s==="Assigned"?C.purple : s==="In Transit"?C.blue : C.green;
+  return s==="Available"?C.teal : s==="Assigned"?C.purple : s==="In Transit"?C.blue : C.green;
 }
 function computeRpm(l){
   if(l.rpm!=null) return l.rpm;
@@ -81,11 +95,12 @@ function KpiBar({loads}){
     {k:"Loads logged",v:fmt0(k.count),c:C.dim},
   ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-6 gap-px" style={{background:C.line,border:`1px solid ${C.line}`,borderRadius:8,overflow:"hidden"}}>
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-px" style={{background:C.line,border:`1px solid ${C.line}`,borderRadius:10,overflow:"hidden"}}>
       {items.map((it,i)=>(
-        <div key={i} style={{background:C.panel,padding:"12px 14px"}}>
-          <Label>{it.k}</Label>
-          <div style={{fontFamily:mono,fontSize:21,fontWeight:600,color:it.c,marginTop:5,lineHeight:1}}>{it.v}</div>
+        <div key={i} style={{background:C.panel,padding:"13px 14px",borderTop:`2px solid ${i===0?C.teal:i===1?(k.margin>=0?C.green:C.red):C.line}`}}>
+          <Label style={{color:C.faint,fontSize:9.5}}>{it.k}</Label>
+          <div style={{fontFamily:mono,fontSize:22,fontWeight:700,color:it.c,marginTop:6,lineHeight:1,
+            textShadow:it.c===C.teal||it.c===C.green?`0 0 14px ${it.c}55`:"none"}}>{it.v}</div>
         </div>
       ))}
     </div>
@@ -99,7 +114,8 @@ function LoadCard({l,onAssign,onAdvance,onBack,onDelete,onEdit,drivers,compact})
   const needsInfo = l.source==="email" && (l.miles==null||l.pay==null);
   return (
     <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderLeft:`3px solid ${col}`,
-      borderRadius:7,padding:"10px 11px",display:"flex",flexDirection:"column",gap:7}}>
+      borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:7,
+      boxShadow:`-2px 0 12px ${col}18`}}>
       <div className="flex items-start justify-between" style={{gap:8}}>
         <div style={{minWidth:0}}>
           <div style={{fontFamily:sans,fontSize:13.5,fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.broker||"—"}</div>
@@ -126,7 +142,7 @@ function LoadCard({l,onAssign,onAdvance,onBack,onDelete,onEdit,drivers,compact})
         <div className="flex items-center justify-between" style={{gap:8,marginTop:1}}>
           {l.status==="Available" ? (
             <select value="" onChange={e=>onAssign(l.id,e.target.value)}
-              style={{flex:1,background:C.raised,color:C.amber,border:`1px solid ${C.line}`,borderRadius:5,
+              style={{flex:1,background:C.raised,color:C.teal,border:`1px solid ${C.teal}55`,borderRadius:5,
                 padding:"5px 7px",fontFamily:mono,fontSize:11.5}}>
               <option value="" style={{color:C.dim}}>Assign driver…</option>
               {drivers.map(d=><option key={d} value={d} style={{color:C.ink}}>{d}</option>)}
@@ -176,12 +192,15 @@ function Board({loads,patchLoad,removeLoad,drivers,onNewLoad,onEdit}){
   return (
     <div>
       <div className="flex items-center justify-between" style={{marginBottom:12}}>
-        <Label style={{fontSize:11}}>Dispatch board · drag-free, tap to advance</Label>
-        <button onClick={onNewLoad} style={{fontFamily:mono,fontSize:12,color:C.bg,background:C.amber,
-          border:"none",borderRadius:6,padding:"7px 13px",cursor:"pointer",fontWeight:700,letterSpacing:.3}}>+ New load</button>
+        <Label style={{fontSize:11,color:C.faint}}>Dispatch board · tap to advance</Label>
+        <button onClick={onNewLoad} style={{fontFamily:mono,fontSize:12,color:"#05070F",
+          background:`linear-gradient(90deg,${C.teal},${C.amberHi})`,
+          border:"none",borderRadius:6,padding:"7px 14px",cursor:"pointer",fontWeight:700,letterSpacing:.3,
+          boxShadow:`0 0 12px ${C.teal}44`}}>+ New load</button>
       </div>
       <div className="flex flex-col lg:flex-row" style={{gap:12,alignItems:"stretch"}}>
         {LANES.map(lane=>{
+          const lc=laneColor(lane);
           const list=grouped[lane];
           const rev=list.reduce((s,l)=>s+(l.rate||0),0);
           const rpms=list.map(computeRpm).filter(x=>x!=null);
@@ -189,18 +208,20 @@ function Board({loads,patchLoad,removeLoad,drivers,onNewLoad,onEdit}){
           const isDel=lane==="Delivered";
           const show=isDel?list.slice(0,12):list;
           return (
-            <div key={lane} className="flex-1" style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:9,minWidth:0,display:"flex",flexDirection:"column"}}>
+            <div key={lane} className="flex-1" style={{background:C.panel,border:`1px solid ${C.line}`,
+              borderTop:`2px solid ${lc}`,borderRadius:9,minWidth:0,display:"flex",flexDirection:"column",
+              boxShadow:`0 2px 20px ${lc}12`}}>
               <div style={{padding:"11px 12px",borderBottom:`1px solid ${C.lineSoft}`}}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center" style={{gap:7}}>
-                    <div style={{width:8,height:8,borderRadius:9,background:laneColor(lane)}}/>
-                    <span style={{fontFamily:sans,fontSize:12.5,fontWeight:700,letterSpacing:.6,textTransform:"uppercase",color:C.ink}}>{lane}</span>
+                  <div className="flex items-center" style={{gap:8}}>
+                    <div style={{width:8,height:8,borderRadius:9,background:lc,boxShadow:`0 0 6px ${lc}99`}}/>
+                    <span style={{fontFamily:sans,fontSize:12.5,fontWeight:700,letterSpacing:.8,textTransform:"uppercase",color:C.ink}}>{lane}</span>
                   </div>
-                  <span style={{fontFamily:mono,fontSize:12,color:C.dim}}>{list.length}</span>
+                  <span style={{fontFamily:mono,fontSize:12,color:C.dim,background:C.panel2,borderRadius:4,padding:"2px 7px"}}>{list.length}</span>
                 </div>
-                <div className="flex items-center justify-between" style={{marginTop:6}}>
+                <div className="flex items-center justify-between" style={{marginTop:7}}>
                   <span style={{fontFamily:mono,fontSize:12,color:C.faint}}>{money(rev)}</span>
-                  {avg!=null && <span style={{fontFamily:mono,fontSize:11,color:rpmColor(avg)}}>avg ${avg.toFixed(2)}</span>}
+                  {avg!=null && <span style={{fontFamily:mono,fontSize:11,color:rpmColor(avg),fontWeight:600}}>avg ${avg.toFixed(2)}</span>}
                 </div>
               </div>
               <div style={{padding:10,display:"flex",flexDirection:"column",gap:9,overflowY:"auto",maxHeight:560}}>
@@ -959,24 +980,37 @@ function Login({onAuthed}){
     if(t) onAuthed(); else setErr("Wrong password");
   }
   return (
-    <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
-      <div style={{width:"100%",maxWidth:360,background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:24}}>
-        <div className="flex items-center" style={{gap:12,marginBottom:18}}>
-          <div style={{width:38,height:38,borderRadius:9,background:C.amber,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{fontFamily:mono,fontWeight:800,color:C.bg,fontSize:19}}>L</span>
-          </div>
+    <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans,display:"flex",alignItems:"center",justifyContent:"center",padding:18,
+      backgroundImage:`radial-gradient(ellipse 60% 50% at 50% -10%,${C.tealGlow} 0%,transparent 70%)`}}>
+      <div style={{width:"100%",maxWidth:360,background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:28,
+        boxShadow:`0 0 60px ${C.tealGlow}`}}>
+        <div className="flex items-center" style={{gap:13,marginBottom:22}}>
+          <svg viewBox="0 0 100 100" width="44" height="44" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+            <rect x="2" y="2" width="96" height="96" rx="20" fill="#0A0D18"/>
+            <rect x="22" y="18" width="17" height="46" rx="4" fill="#16C7DE"/>
+            <rect x="22" y="47" width="39" height="17" rx="4" fill="#16C7DE"/>
+            <rect x="58" y="33" width="23" height="52" rx="6" fill="#0A0D18"/>
+            <rect x="36" y="33" width="45" height="23" rx="6" fill="#0A0D18"/>
+            <rect x="61" y="36" width="17" height="46" rx="4" fill="#8B5CFF"/>
+            <rect x="39" y="36" width="39" height="17" rx="4" fill="#8B5CFF"/>
+          </svg>
           <div>
-            <div style={{fontFamily:sans,fontWeight:800,fontSize:17,letterSpacing:.5}}>LOADED LOGISTICS</div>
-            <div style={{fontFamily:mono,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.faint}}>Dispatch terminal</div>
+            <div style={{fontFamily:sans,fontWeight:800,fontSize:18,letterSpacing:2,textTransform:"uppercase",
+              background:`linear-gradient(90deg,${C.teal} 0%,#A78BFF 100%)`,WebkitBackgroundClip:"text",
+              WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Loaded Logistics</div>
+            <div style={{fontFamily:mono,fontSize:9.5,letterSpacing:2,textTransform:"uppercase",color:C.faint,marginTop:2}}>Dispatch terminal</div>
           </div>
         </div>
         <Label style={{marginBottom:6}}>Team password</Label>
         <input type="password" value={pw} autoFocus onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}
           placeholder="Enter password" style={{width:"100%",background:C.bg,border:`1px solid ${err?C.red:C.line}`,borderRadius:8,color:C.ink,padding:"11px 13px",fontFamily:mono,fontSize:14}}/>
         {err && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginTop:8}}>{err}</div>}
-        <button onClick={go} disabled={busy} style={{width:"100%",marginTop:14,fontFamily:mono,fontSize:13,fontWeight:700,color:C.bg,background:busy?C.faint:C.amber,border:"none",borderRadius:8,padding:"11px",cursor:busy?"default":"pointer"}}>
+        <button onClick={go} disabled={busy} style={{width:"100%",marginTop:14,fontFamily:mono,fontSize:13,fontWeight:700,color:"#05070F",
+          background:busy?C.faint:`linear-gradient(90deg,${C.teal},${C.amberHi})`,
+          border:"none",borderRadius:8,padding:"11px",cursor:busy?"default":"pointer",
+          boxShadow:busy?"none":`0 0 18px ${C.teal}55`}}>
           {busy?"Checking…":"Enter board"}</button>
-        <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:14,lineHeight:1.5}}>Shared board for the Loaded Logistics team. Everyone who signs in sees the same live loads and chat.</div>
+        <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:16,lineHeight:1.5}}>Shared board for the Loaded Logistics team. Everyone who signs in sees the same live loads and chat.</div>
       </div>
     </div>
   );
@@ -2076,31 +2110,46 @@ export default function App(){
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans}}>
-      <div style={{borderBottom:`1px solid ${C.line}`,background:C.panel,position:"sticky",top:0,zIndex:20}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"12px 18px"}} className="flex items-center justify-between">
-          <div className="flex items-center" style={{gap:12}}>
-            <div style={{width:34,height:34,borderRadius:8,background:C.amber,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <span style={{fontFamily:mono,fontWeight:800,color:C.bg,fontSize:17}}>L</span>
+      {/* ---- Header ---- */}
+      <div style={{borderBottom:`1px solid ${C.line}`,background:`linear-gradient(180deg,#0B0E1E 0%,${C.panel} 100%)`,position:"sticky",top:0,zIndex:20,boxShadow:`0 1px 24px ${C.tealGlow}`}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"11px 18px"}} className="flex items-center justify-between">
+          <div className="flex items-center" style={{gap:13}}>
+            {/* Loaded Logistics logo mark — inline SVG from logo */}
+            <div style={{width:36,height:36,flexShrink:0}}>
+              <svg viewBox="0 0 100 100" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="96" height="96" rx="20" fill="#0A0D18"/>
+                <rect x="22" y="18" width="17" height="46" rx="4" fill="#16C7DE"/>
+                <rect x="22" y="47" width="39" height="17" rx="4" fill="#16C7DE"/>
+                <rect x="58" y="33" width="23" height="52" rx="6" fill="#0A0D18"/>
+                <rect x="36" y="33" width="45" height="23" rx="6" fill="#0A0D18"/>
+                <rect x="61" y="36" width="17" height="46" rx="4" fill="#8B5CFF"/>
+                <rect x="39" y="36" width="39" height="17" rx="4" fill="#8B5CFF"/>
+              </svg>
             </div>
             <div>
-              <div style={{fontFamily:sans,fontWeight:800,fontSize:16,letterSpacing:.5,color:C.ink}}>LOADED LOGISTICS</div>
-              <div style={{fontFamily:mono,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.faint}}>Dispatch terminal</div>
+              <div style={{fontFamily:sans,fontWeight:800,fontSize:15.5,letterSpacing:2,textTransform:"uppercase",
+                background:`linear-gradient(90deg,${C.teal} 0%,#A78BFF 100%)`,WebkitBackgroundClip:"text",
+                WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Loaded Logistics</div>
+              <div style={{fontFamily:mono,fontSize:9.5,letterSpacing:2,textTransform:"uppercase",color:C.faint,marginTop:1}}>Dispatch terminal</div>
             </div>
           </div>
           <div className="flex items-center" style={{gap:14}}>
             <div className="flex items-center" style={{gap:7}}>
-              <div style={{width:7,height:7,borderRadius:9,background:ready?C.green:C.amber}}/>
+              <div style={{width:7,height:7,borderRadius:9,background:ready?C.green:C.amber,boxShadow:ready?`0 0 6px ${C.green}88`:`0 0 6px ${C.amber}88`}}/>
               <span style={{fontFamily:mono,fontSize:10.5,color:C.dim}}>{ready?"synced":"connecting"}</span>
             </div>
             <button onClick={signOut} style={{fontFamily:mono,fontSize:10.5,color:C.dim,background:"transparent",border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",cursor:"pointer"}}>Sign out</button>
           </div>
         </div>
         <div style={{maxWidth:1280,margin:"0 auto",padding:"0 18px"}}>
-          <div className="flex" style={{gap:2,overflowX:"auto"}}>
+          <div className="flex" style={{gap:0,overflowX:"auto"}}>
             {NAV.map(([id,label])=>(
               <button key={id} onClick={()=>setView(id)} style={{fontFamily:sans,fontSize:12.5,fontWeight:600,letterSpacing:.4,
-                color:view===id?C.ink:C.dim,background:"transparent",border:"none",borderBottom:`2px solid ${view===id?C.amber:"transparent"}`,
-                padding:"10px 14px",cursor:"pointer",whiteSpace:"nowrap"}}>{label}</button>
+                color:view===id?C.teal:C.dim,background:"transparent",border:"none",
+                borderBottom:`2px solid ${view===id?C.teal:"transparent"}`,
+                padding:"10px 14px",cursor:"pointer",whiteSpace:"nowrap",
+                textShadow:view===id?`0 0 12px ${C.teal}88`:"none",
+                transition:"color .15s,text-shadow .15s"}}>{label}</button>
             ))}
           </div>
         </div>
