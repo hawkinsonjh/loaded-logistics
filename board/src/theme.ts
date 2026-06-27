@@ -7,19 +7,20 @@
 
 /* ============================ TOKENS ============================ */
 export const C = {
-  bg:"#0E1116", panel:"#161B22", panel2:"#1C222B", raised:"#222933",
-  line:"#2A323D", lineSoft:"#222932",
+  bg:"#0B0F1C", panel:"#141A2A", panel2:"#1A2035", raised:"#1F2840",
+  line:"#2A3350", lineSoft:"#1A2035",
   ink:"#E9ECF1", dim:"#8B95A3", faint:"#6E7886",
-  amber:"#F2A413", amberHi:"#FFB740",
+  amber:"#16C7DE", amberHi:"#3DD8EC",
   green:"#36D399", greenDim:"#1f6b50",
   red:"#F0594C", redDim:"#6b2722",
-  blue:"#4DA3FF", purple:"#A78BFA",
+  blue:"#4DA3FF", purple:"#8B5CFF",
 };
 
 export const LANES = ["Available","Assigned","In Transit","Delivered"];
 export const DRIVER_ORDER = ["TJ","John","Chris","Jeremy","Derek"];
 export const mono = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 export const sans = '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+export const oswald = '"Oswald", "Inter", system-ui, sans-serif';
 
 /* ============================ HELPERS ============================ */
 export const fmt0  = (n:any) => (n==null||isNaN(n)) ? "—" : Math.round(n).toLocaleString();

@@ -5,33 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loaded Logistics — Dispatch</title>
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0E1116" />
+    <meta name="theme-color" content="#0B0F1C" />
     <!-- Tailwind utilities used by the board. For a fully self-hosted build you can
          swap this for compiled Tailwind; the Play CDN is fine for an internal tool. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
       :root { color-scheme: dark; }
       html, body, #root { height: 100%; }
       body {
         margin: 0;
-        background: #0E1116;
+        background: #0B0F1C;
         color: #E9ECF1;
         font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
       }
       body { font-feature-settings: "cv11", "ss01"; }
-      *:focus-visible { outline: 2px solid #F2A413; outline-offset: 2px; border-radius: 3px; }
-      ::selection { background: #F2A41340; }
+      *:focus-visible { outline: 2px solid #16C7DE; outline-offset: 2px; border-radius: 3px; }
+      ::selection { background: #16C7DE40; }
       /* subtle, unobtrusive dark scrollbars */
-      * { scrollbar-width: thin; scrollbar-color: #2A323D transparent; }
+      * { scrollbar-width: thin; scrollbar-color: #2A3350 transparent; }
       *::-webkit-scrollbar { width: 10px; height: 10px; }
       *::-webkit-scrollbar-track { background: transparent; }
-      *::-webkit-scrollbar-thumb { background: #2A323D; border-radius: 6px; border: 2px solid #0E1116; }
-      *::-webkit-scrollbar-thumb:hover { background: #3A4350; }
+      *::-webkit-scrollbar-thumb { background: #2A3350; border-radius: 6px; border: 2px solid #0B0F1C; }
+      *::-webkit-scrollbar-thumb:hover { background: #3A4560; }
       /* tactile lift on load/feed cards — shadow+transform only, so it never fights inline border colors */
       .ll-card { transition: transform .16s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, background .2s ease; }
       .ll-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0,0,0,.6); }

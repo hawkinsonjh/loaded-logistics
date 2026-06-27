@@ -6,18 +6,19 @@ const SEED: any[] = [];
 
 /* ============================ TOKENS ============================ */
 const C = {
-  bg:"#0E1116", panel:"#161B22", panel2:"#1C222B", raised:"#222933",
-  line:"#2A323D", lineSoft:"#222932",
+  bg:"#0B0F1C", panel:"#141A2A", panel2:"#1A2035", raised:"#1F2840",
+  line:"#2A3350", lineSoft:"#1A2035",
   ink:"#E9ECF1", dim:"#8B95A3", faint:"#6E7886",
-  amber:"#F2A413", amberHi:"#FFB740",
+  amber:"#16C7DE", amberHi:"#3DD8EC",
   green:"#36D399", greenDim:"#1f6b50",
   red:"#F0594C", redDim:"#6b2722",
-  blue:"#4DA3FF", purple:"#A78BFA",
+  blue:"#4DA3FF", purple:"#8B5CFF",
 };
 const LANES = ["Available","Assigned","In Transit","Delivered"];
 const DRIVER_ORDER = ["TJ","John","Chris","Jeremy","Derek"];
 const mono = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 const sans = '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const oswald = '"Oswald", "Inter", system-ui, sans-serif';
 
 /* ============================ HELPERS ============================ */
 const fmt0 = n => (n==null||isNaN(n)) ? "—" : Math.round(n).toLocaleString();
@@ -1451,12 +1452,12 @@ function Login({onAuthed}){
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
       <div style={{width:"100%",maxWidth:360,background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:24}}>
         <div className="flex items-center" style={{gap:12,marginBottom:18}}>
-          <div style={{width:38,height:38,borderRadius:9,background:C.amber,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{fontFamily:mono,fontWeight:800,color:C.bg,fontSize:19}}>L</span>
+          <div style={{width:38,height:38,borderRadius:9,background:"linear-gradient(135deg,#0C7C8E 0%,#1C1060 100%)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 0 1px rgba(22,199,222,.25)"}}>
+            <span style={{fontFamily:oswald,fontWeight:700,color:"#16C7DE",fontSize:20,lineHeight:1}}>L</span>
           </div>
           <div>
-            <div style={{fontFamily:sans,fontWeight:800,fontSize:17,letterSpacing:.5}}>LOADED LOGISTICS</div>
-            <div style={{fontFamily:mono,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.faint}}>Dispatch terminal</div>
+            <div style={{fontFamily:oswald,fontWeight:700,fontSize:17,letterSpacing:.5,color:C.ink}}>LOADED LOGISTICS</div>
+            <div style={{fontFamily:oswald,fontWeight:500,fontSize:9.5,letterSpacing:3,textTransform:"uppercase",color:C.amber,marginTop:2}}>Dispatch terminal</div>
           </div>
         </div>
         <Label style={{marginBottom:6}}>Team password</Label>
@@ -1517,12 +1518,12 @@ export default function App(){
       <div style={{borderBottom:`1px solid ${C.line}`,background:C.panel,position:"sticky",top:0,zIndex:20}}>
         <div style={{maxWidth:1280,margin:"0 auto",padding:"12px 18px"}} className="flex items-center justify-between">
           <div className="flex items-center" style={{gap:12}}>
-            <div style={{width:34,height:34,borderRadius:8,background:C.amber,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <span style={{fontFamily:mono,fontWeight:800,color:C.bg,fontSize:17}}>L</span>
+            <div style={{width:34,height:34,borderRadius:8,background:"linear-gradient(135deg,#0C7C8E 0%,#1C1060 100%)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 0 1px rgba(22,199,222,.25)"}}>
+              <span style={{fontFamily:oswald,fontWeight:700,color:"#16C7DE",fontSize:18,lineHeight:1}}>L</span>
             </div>
             <div>
-              <div style={{fontFamily:sans,fontWeight:800,fontSize:16,letterSpacing:.5,color:C.ink}}>LOADED LOGISTICS</div>
-              <div style={{fontFamily:mono,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.faint}}>Dispatch terminal</div>
+              <div style={{fontFamily:oswald,fontWeight:700,fontSize:16,letterSpacing:.5,color:C.ink}}>LOADED LOGISTICS</div>
+              <div style={{fontFamily:oswald,fontWeight:500,fontSize:9,letterSpacing:3,textTransform:"uppercase",color:C.amber,marginTop:2}}>Dispatch terminal</div>
             </div>
           </div>
           <div className="flex items-center" style={{gap:14}}>
