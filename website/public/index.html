@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loaded Logistics — Reliable Freight, Nationwide</title>
+<meta name="description" content="Loaded Logistics is a family-owned North Carolina carrier delivering dependable, nationwide freight — full truckload, LTL, time-sensitive and specialized shipments, with a safety-first promise.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<meta property="og:title" content="Loaded Logistics — Reliable Freight, Nationwide">
+<meta property="og:description" content="Dependable, nationwide freight from a family-owned NC carrier. FTL, LTL, time-sensitive & specialized handling.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.loadedlogisticsnc.com">
+<meta property="og:image" content="https://www.loadedlogisticsnc.com/favicon.svg">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0B0F1C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0F1C; --ink2:#141A2A; --paper:#FFFFFF; --mist:#F4F6F9; --line:#E5E8EE;
+    --muted:#515A6E; --teal:#0C7C8E; --tealb:#16C7DE; --purple:#6C2BD9; --purpleb:#8B5CFF;
+    --r-sm:8px; --r:12px; --r-lg:18px; --r-xl:24px;
+    --sh-1:0 1px 2px rgba(11,15,28,.06), 0 1px 1px rgba(11,15,28,.04);
+    --sh-2:0 12px 28px -10px rgba(11,15,28,.18);
+    --sh-3:0 24px 60px -18px rgba(28,16,96,.34);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .container{max-width:1160px;margin:0 auto;padding:0 clamp(18px,4vw,36px)}
+  a{color:inherit;text-decoration:none}
+  h1,h2,h3,.dt{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.005em;font-weight:700;line-height:1.04;text-wrap:balance}
+  p{text-wrap:pretty}
+  :focus-visible{outline:2.5px solid var(--tealb);outline-offset:3px;border-radius:4px}
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.125em;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.82);backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s,background .3s}
+  header.scrolled{border-bottom-color:var(--line);box-shadow:var(--sh-1)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:70px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .bt{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:20px;letter-spacing:.02em;line-height:1}
+  .brand .bs{font-family:'Oswald',sans-serif;font-weight:500;text-transform:uppercase;font-size:9.5px;letter-spacing:.34em;color:var(--teal);line-height:1;margin-top:3px}
+  .navlinks{display:flex;gap:30px;align-items:center}
+  .navlinks a{font-size:14.5px;font-weight:600;color:#3a4256;transition:color .18s}
+  .navlinks a:not(.btn):hover{color:var(--teal)}
+  .navlinks a:not(.btn){position:relative}
+  .navlinks a:not(.btn)::after{content:"";position:absolute;left:0;bottom:-6px;height:2px;width:0;background:var(--tealb);transition:width .22s var(--ease)}
+  .navlinks a:not(.btn):hover::after{width:100%}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.045em;
+    font-size:14px;padding:12px 22px;border-radius:var(--r);cursor:pointer;border:1.5px solid transparent;transition:transform .14s var(--ease),box-shadow .2s,background .2s,color .2s,border-color .2s}
+  .btn .ico{width:17px;height:17px}
+  .btn-primary{background:var(--ink);color:#fff;box-shadow:var(--sh-1)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
+  .btn-primary:active{transform:translateY(0)}
+  .btn-on-dark{background:#fff;color:var(--ink)}
+  .btn-on-dark:hover{transform:translateY(-2px);box-shadow:0 14px 30px -12px rgba(0,0,0,.5)}
+  .btn-ghost{border-color:rgba(255,255,255,.34);color:#fff}
+  .btn-ghost:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+  @media(max-width:780px){.navlinks a:not(.btn){display:none}}
+
+  .hero{position:relative;overflow:hidden;color:#fff;background:var(--ink)}
+  .hero::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(60% 80% at 14% 8%,rgba(22,199,222,.26),transparent 60%),
+    radial-gradient(60% 80% at 92% 92%,rgba(139,92,255,.30),transparent 62%)}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(11,15,28,.5))}
+  .hero .container{position:relative;z-index:2;padding-top:clamp(64px,10vw,116px);padding-bottom:clamp(64px,10vw,116px);max-width:980px}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#a9eef7;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);padding:7px 14px;border-radius:30px;margin-bottom:26px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--tealb);box-shadow:0 0 0 4px rgba(22,199,222,.25)}
+  .hero h1{font-size:clamp(38px,6.6vw,76px);max-width:15ch}
+  .hero h1 .em{color:var(--tealb)}
+  .hero p.sub{font-size:clamp(16px,2.1vw,20px);color:rgba(255,255,255,.78);max-width:46ch;margin:22px 0 32px}
+  .hero .cta{display:flex;gap:14px;flex-wrap:wrap}
+  .heromark{position:absolute;right:clamp(-60px,-2vw,0px);top:50%;transform:translateY(-50%) rotate(-7deg);opacity:.10;z-index:1;pointer-events:none}
+  @media(max-width:720px){.heromark{opacity:.06;right:-90px}}
+
+  .trust{background:var(--ink2);color:#fff;border-top:1px solid rgba(255,255,255,.06)}
+  .trust .container{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0}
+  .trust .item{display:flex;flex-direction:column;gap:3px;padding:26px 22px;border-left:1px solid rgba(255,255,255,.07)}
+  .trust .item:first-child{border-left:none}
+  .trust .k{display:flex;align-items:center;gap:9px;font-family:'Oswald',sans-serif;font-weight:700;font-size:21px;color:#fff}
+  .trust .k .ico{width:19px;height:19px;color:var(--tealb)}
+  .trust .l{font-size:12.5px;color:#9aa3b8;letter-spacing:.01em}
+  @media(max-width:760px){.trust .container{grid-template-columns:1fr 1fr}.trust .item:nth-child(odd){border-left:none}.trust .item:nth-child(n+3){border-top:1px solid rgba(255,255,255,.07)}}
+
+  section.block{padding:clamp(60px,9vw,104px) 0}
+  .kicker{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:14px}
+  h2.sec{font-size:clamp(28px,4.4vw,44px);max-width:18ch}
+  .lead2{color:var(--muted);font-size:clamp(15.5px,1.7vw,18px);max-width:58ch;margin-top:14px}
+
+  .svc{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:42px}
+  .scard{grid-column:span 2;border:1px solid var(--line);border-radius:var(--r-lg);padding:26px;background:#fff;box-shadow:var(--sh-1);
+    transition:transform .2s var(--ease),box-shadow .25s,border-color .2s}
+  .scard.feature{grid-column:span 4;display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center;
+    background:linear-gradient(120deg,#0C7C8E,#1C1060);color:#fff;border:none;overflow:hidden;position:relative}
+  .scard.feature::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 100% at 85% 50%,rgba(139,92,255,.4),transparent 60%)}
+  .scard.feature>*{position:relative;z-index:1}
+  .scard:hover{transform:translateY(-4px);box-shadow:var(--sh-2);border-color:#d4dae3}
+  .scard.feature:hover{box-shadow:var(--sh-3)}
+  .scico{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+    background:linear-gradient(135deg,rgba(22,199,222,.15),rgba(139,92,255,.16));color:var(--teal)}
+  .scard.feature .scico{background:rgba(255,255,255,.14);color:#fff}
+  .scico .ico{width:24px;height:24px}
+  .scard h3{font-size:19px;margin-bottom:8px}
+  .scard.feature h3{font-size:clamp(22px,2.6vw,30px)}
+  .scard p{font-size:14.5px;color:var(--muted)}
+  .scard.feature p{color:rgba(255,255,255,.82);font-size:15.5px;max-width:42ch}
+  .featchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .featchips span{font-size:12.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);padding:6px 12px;border-radius:20px}
+  @media(max-width:880px){.svc{grid-template-columns:1fr 1fr}.scard{grid-column:span 1}.scard.feature{grid-column:span 2;grid-template-columns:1fr}}
+  @media(max-width:560px){.svc{grid-template-columns:1fr}.scard.feature{grid-column:span 1}}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center}
+  .checks{list-style:none;margin-top:26px;display:flex;flex-direction:column;gap:16px}
+  .checks li{display:flex;gap:13px;font-size:15.5px;color:#283041}
+  .checks .cm{flex:none;width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--tealb);display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .checks .cm .ico{width:15px;height:15px}
+  .panelcard{border-radius:var(--r-xl);background:linear-gradient(125deg,#0C7C8E 0%,#0a5f86 34%,#2A1E74 72%,#1C1060 100%);position:relative;overflow:hidden;padding:clamp(30px,4vw,46px);color:#fff;min-height:300px;display:flex;flex-direction:column;justify-content:center;box-shadow:var(--sh-3)}
+  .panelcard::before{content:"";position:absolute;inset:0;background:radial-gradient(50% 70% at 30% 30%,rgba(22,199,222,.24),transparent 68%),radial-gradient(54% 74% at 78% 72%,rgba(139,92,255,.28),transparent 70%)}
+  .panelcard>*{position:relative}
+  .panelcard .big{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(26px,3.6vw,38px);line-height:1.04}
+  .panelcard .stat{display:flex;gap:30px;margin-top:26px;flex-wrap:wrap}
+  .panelcard .stat .n{font-family:'Oswald',sans-serif;font-weight:700;font-size:30px;color:#fff;line-height:1}
+  .panelcard .stat .t{font-size:12.5px;color:rgba(255,255,255,.7);margin-top:5px}
+  @media(max-width:840px){.split{grid-template-columns:1fr}.split .panelcard{order:-1}.split.about .panelcard{order:0}}
+
+  .careers{background:var(--ink);color:#fff;border-radius:var(--r-xl);padding:clamp(38px,5.5vw,64px);text-align:center;position:relative;overflow:hidden}
+  .careers::before{content:"";position:absolute;inset:0;background:radial-gradient(46% 110% at 50% 0%,rgba(22,199,222,.20),transparent 66%),radial-gradient(40% 100% at 80% 100%,rgba(139,92,255,.22),transparent 70%)}
+  .careers>*{position:relative}
+  .careers h2{font-size:clamp(26px,4.2vw,42px)}
+  .careers p{color:#aab2c5;max-width:46ch;margin:14px auto 28px;font-size:16px}
+
+  .contact{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,60px);align-items:start}
+  .cinfo .row{display:flex;align-items:center;gap:15px;padding:18px 0;border-bottom:1px solid var(--line)}
+  .cinfo .row:last-child{border-bottom:none}
+  .cinfo .ic{width:44px;height:44px;border-radius:12px;background:var(--mist);color:var(--teal);display:flex;align-items:center;justify-content:center;flex:none}
+  .cinfo .ic .ico{width:21px;height:21px}
+  .cinfo .rk{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;font-weight:600}
+  .cinfo .rv{font-family:'Oswald',sans-serif;font-weight:600;font-size:19px;margin-top:2px}
+  .quote{border:1px solid var(--line);border-radius:var(--r-lg);padding:30px;background:var(--mist);box-shadow:var(--sh-1)}
+  .quote h3{font-family:'Oswald',sans-serif;font-size:20px;margin-bottom:4px}
+  .quote .qsub{font-size:13.5px;color:var(--muted);margin-bottom:18px}
+  .quote .field{margin-bottom:14px}
+  .quote label{font-size:12.5px;font-weight:600;color:#2c3447;display:block;margin-bottom:6px}
+  .quote input,.quote textarea{width:100%;border:1.5px solid var(--line);border-radius:var(--r-sm);padding:12px 13px;font-family:inherit;font-size:14.5px;background:#fff;color:var(--ink);transition:border-color .18s,box-shadow .18s}
+  .quote input::placeholder,.quote textarea::placeholder{color:#97a0b2}
+  .quote input:focus,.quote textarea:focus{outline:none;border-color:var(--tealb);box-shadow:0 0 0 3px rgba(22,199,222,.18)}
+  .quote .btn{width:100%;justify-content:center;margin-top:4px}
+  @media(max-width:840px){.contact{grid-template-columns:1fr}}
+
+  footer{background:var(--ink);color:#fff;padding:54px 0 30px}
+  .fgrid{display:flex;justify-content:space-between;gap:34px;flex-wrap:wrap;padding-bottom:30px;border-bottom:1px solid rgba(255,255,255,.1)}
+  .fcol h4{font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:13px;letter-spacing:.1em;color:#9aa3b8;margin-bottom:14px}
+  .fcol a,.fcol p{display:block;color:#c7cdda;font-size:14px;margin-bottom:9px;transition:color .18s}
+  .fcol a:hover{color:var(--tealb)}
+  .fbottom{padding-top:20px;font-size:12.5px;color:#8a92a8;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none;transition:none}
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset=".46" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <clipPath id="bc"><rect x="2" y="2" width="96" height="96" rx="23"/></clipPath>
+    <filter id="ws" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.7" flood-color="#000" flood-opacity="0.55"/></filter>
+    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6.5h10.5v9.5H3z"/><path d="M13.5 9.5H18l3 3.2V16h-7.5z"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2l9 5.2 9-5.2z"/><path d="M3 8.2v7.6l9 5.2 9-5.2V8.2"/><path d="M12 13.4V21"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v5.5c0 5-3.5 8.2-8 9.5-4.5-1.3-8-4.5-8-9.5V6z"/><path d="M8.5 12l2.4 2.4L15.5 10"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.4 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.6"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h3.6l1.6 4-2.2 1.6a11 11 0 0 0 4.8 4.8L14.4 16l4 1.6V21a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.2"/><path d="M3.6 7 12 12.8 20.4 7"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.5S5 15.5 5 10a7 7 0 0 1 14 0c0 5.5-7 11.5-7 11.5z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9 17l10.5-10.5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></symbol>
+  </defs>
+</svg>
+
+<script>
+  window.MARK = (s) => `<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-label="Loaded Logistics" role="img">
+    <rect x="2" y="2" width="96" height="96" rx="23" fill="#0A0D18"/>
+    <rect x="22" y="18" width="17" height="46" rx="4" fill="#16C7DE"/><rect x="22" y="47" width="39" height="17" rx="4" fill="#16C7DE"/>
+    <rect x="58" y="33" width="23" height="52" rx="6" fill="#0A0D18"/><rect x="36" y="33" width="45" height="23" rx="6" fill="#0A0D18"/>
+    <g filter="url(#ws)"><rect x="61" y="36" width="17" height="46" rx="4" fill="#8B5CFF"/><rect x="39" y="36" width="39" height="17" rx="4" fill="#8B5CFF"/></g>
+    <rect x="2" y="2" width="96" height="96" fill="url(#gloss)" clip-path="url(#bc)"/></svg>`;
+</script>
+
+<header id="hdr">
+  <div class="container nav">
+    <a class="brand" href="#top" aria-label="Loaded Logistics home">
+      <span id="navmark"></span>
+      <span><span class="bt">Loaded</span><br><span class="bs">Logistics</span></span>
+    </a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="#services">Services</a>
+      <a href="#why">Why Us</a>
+      <a href="#about">About</a>
+      <a href="#careers">Careers</a>
+      <a class="btn btn-primary" href="#contact">Get a Quote <svg class="ico"><use href="#i-arrow"/></svg></a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <span class="heromark" id="heromark" aria-hidden="true"></span>
+  <div class="container">
+    <span class="eyebrow"><span class="dot"></span> Family-owned · Matthews, NC</span>
+    <h1>Freight moved right. <span class="em">On time, every time.</span></h1>
+    <p class="sub">A family-owned North Carolina carrier hauling dependable, nationwide freight — with safety-first service you can count on.</p>
+    <div class="cta">
+      <a class="btn btn-on-dark" href="#contact">Get a Quote <svg class="ico"><use href="#i-arrow"/></svg></a>
+      <a class="btn btn-ghost" href="#careers">Apply to Drive</a>
+    </div>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="container">
+    <div class="item"><span class="k"><svg class="ico"><use href="#i-route"/></svg>48 States</span><span class="l">Coast-to-coast coverage</span></div>
+    <div class="item"><span class="k"><svg class="ico"><use href="#i-clock"/></svg>8a–8p · 7 days</span><span class="l">Responsive dispatch</span></div>
+    <div class="item"><span class="k"><svg class="ico"><use href="#i-shield"/></svg>Safety-First</span><span class="l">Vetted drivers, maintained fleet</span></div>
+    <div class="item"><span class="k"><svg class="ico"><use href="#i-star"/></svg>Family-Owned</span><span class="l">We treat freight like our own</span></div>
+  </div>
+</div>
+
+<section class="block container" id="services">
+  <div class="reveal">
+    <span class="kicker">What we haul</span>
+    <h2 class="sec">Full-service freight, built around your schedule</h2>
+    <p class="lead2">Truckload or partial, routine or time-critical — we move it with professional drivers, well-maintained equipment, and communication you never have to chase.</p>
+  </div>
+  <div class="svc">
+    <article class="scard feature reveal">
+      <div>
+        <div class="scico"><svg class="ico"><use href="#i-truck"/></svg></div>
+        <h3>Full Truckload, coast to coast</h3>
+        <p>Dedicated capacity with on-time performance you can plan around — one shipment, one truck, your freight start to finish.</p>
+        <div class="featchips"><span>Dry van</span><span>Power-only</span><span>Drop &amp; hook</span><span>Dedicated lanes</span></div>
+      </div>
+      <div class="panelcard" style="min-height:200px">
+        <div class="big">One truck.<br>Your freight.<br>No relays.</div>
+      </div>
+    </article>
+    <article class="scard reveal"><div class="scico"><svg class="ico"><use href="#i-box"/></svg></div><h3>Less-Than-Truckload</h3><p>Cost-efficient partial loads across the Southeast and beyond, handled with care.</p></article>
+    <article class="scard reveal"><div class="scico"><svg class="ico"><use href="#i-bolt"/></svg></div><h3>Time-Sensitive &amp; Dedicated</h3><p>Expedited and dedicated-route solutions for manufacturers, distributors, and retailers.</p></article>
+    <article class="scard reveal"><div class="scico"><svg class="ico"><use href="#i-shield"/></svg></div><h3>Specialized Handling</h3><p>Careful transport for high-value, fragile, and sensitive shipments.</p></article>
+    <article class="scard reveal"><div class="scico"><svg class="ico"><use href="#i-route"/></svg></div><h3>Real-Time Tracking</h3><p>Proactive updates from pickup to delivery — visibility without the guesswork.</p></article>
+  </div>
+</section>
+
+<section class="block" id="why" style="background:var(--mist)">
+  <div class="container split">
+    <div class="reveal">
+      <span class="kicker">Our safety-first promise</span>
+      <h2 class="sec">Freight moves the economy — never at the cost of the people who move it</h2>
+      <ul class="checks">
+        <li><span class="cm"><svg class="ico"><use href="#i-check"/></svg></span><span>Rigorous driver vetting and continuous training, led by hands-on leadership.</span></li>
+        <li><span class="cm"><svg class="ico"><use href="#i-check"/></svg></span><span>Fleet kept to the highest standards with preventive maintenance and modern safety tech.</span></li>
+        <li><span class="cm"><svg class="ico"><use href="#i-check"/></svg></span><span>Strict compliance with federal and state regulations and best-practice protocols.</span></li>
+        <li><span class="cm"><svg class="ico"><use href="#i-check"/></svg></span><span>Safety metrics tracked and shared transparently with our customers.</span></li>
+      </ul>
+    </div>
+    <div class="panelcard reveal">
+      <div class="big">Reliable.<br>Efficient.<br>Professional.</div>
+      <p style="color:rgba(255,255,255,.82);margin-top:16px;font-size:15.5px">The same no-nonsense dedication we started with — now backed by systems that move freight efficiently at scale.</p>
+      <div class="stat">
+        <div><div class="n">48</div><div class="t">States served</div></div>
+        <div><div class="n">7 days</div><div class="t">Dispatch coverage</div></div>
+        <div><div class="n">1:1</div><div class="t">Owner accountability</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block container" id="about">
+  <div class="split about">
+    <div class="panelcard reveal" style="background:linear-gradient(125deg,#1C1060 0%,#2A1E74 38%,#0a5f86 100%)">
+      <div class="big">Started with one box truck<br>&amp; a big idea.</div>
+      <p style="color:rgba(255,255,255,.8);margin-top:14px;font-size:15px">From a single truck to a growing semi fleet — same principles, bigger reach.</p>
+    </div>
+    <div class="reveal">
+      <span class="kicker">Our story</span>
+      <h2 class="sec">A North Carolina carrier, family-owned and built on integrity</h2>
+      <p class="lead2">Founded in Matthews, NC by Joseph Hawkinson and Meredith Taylor, Loaded Logistics grew from a small, principled operation into a regional leader in safe, reliable freight — without ever compromising on accountability. We treat your freight like it's our own, and we keep it simple: clear quotes, honest timelines, responsive dispatch.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block container" id="careers">
+  <div class="careers reveal">
+    <h2>Drive with a team that has your back</h2>
+    <p>We're always looking for motivated, well-qualified drivers to join our growing fleet. Safety-first culture, well-maintained trucks, and leadership that listens.</p>
+    <a class="btn btn-on-dark" href="https://www.indeed.com/job/truck-driver-0f054c41fd6edeff" target="_blank" rel="noopener">Apply to Drive <svg class="ico"><use href="#i-arrow"/></svg></a>
+  </div>
+</section>
+
+<section class="block container" id="contact">
+  <div class="reveal">
+    <span class="kicker">Get in touch</span>
+    <h2 class="sec" style="margin-bottom:36px">Let's get your freight moved right</h2>
+  </div>
+  <div class="contact">
+    <div class="cinfo reveal">
+      <div class="row"><span class="ic"><svg class="ico"><use href="#i-phone"/></svg></span><span><span class="rk">Call dispatch</span><br><a class="rv" href="tel:+17049624987">704-962-4987</a></span></div>
+      <div class="row"><span class="ic"><svg class="ico"><use href="#i-mail"/></svg></span><span><span class="rk">Email</span><br><a class="rv" href="mailto:j.hawkinson@loadedlogisticsnc.com">j.hawkinson@loadedlogisticsnc.com</a></span></div>
+      <div class="row"><span class="ic"><svg class="ico"><use href="#i-pin"/></svg></span><span><span class="rk">Based in</span><br><span class="rv">Matthews, North Carolina</span></span></div>
+      <div class="row"><span class="ic"><svg class="ico"><use href="#i-clock"/></svg></span><span><span class="rk">Hours</span><br><span class="rv">Mon–Sun · 8:00a – 8:00p</span></span></div>
+    </div>
+    <div class="quote reveal">
+      <h3>Request a quote</h3>
+      <p class="qsub">Tell us the lane and freight — we'll get right back to you.</p>
+      <div class="field"><label for="qName">Name</label><input id="qName" type="text" placeholder="Your name"></div>
+      <div class="field"><label for="qContact">Email or phone</label><input id="qContact" type="text" placeholder="How we reach you"></div>
+      <div class="field"><label for="qNeed">What do you need moved?</label><textarea id="qNeed" rows="3" placeholder="Lane, freight type, timing…"></textarea></div>
+      <button class="btn btn-primary" onclick="sendQuote()">Request a Quote <svg class="ico"><use href="#i-arrow"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="fgrid">
+      <div class="fcol" style="max-width:300px">
+        <div class="brand" style="margin-bottom:14px"><span id="footmark"></span><span><span class="bt" style="color:#fff">Loaded</span><br><span class="bs">Logistics</span></span></div>
+        <p style="color:#9aa3b8">Dependable, simple, nationwide freight. Family-owned in Matthews, NC.</p>
+      </div>
+      <div class="fcol"><h4>Company</h4><a href="#services">Services</a><a href="#why">Why Us</a><a href="#about">About</a><a href="#careers">Careers</a></div>
+      <div class="fcol"><h4>Contact</h4><a href="tel:+17049624987">704-962-4987</a><a href="mailto:j.hawkinson@loadedlogisticsnc.com">j.hawkinson@loadedlogisticsnc.com</a><p>Matthews, NC</p></div>
+    </div>
+    <div class="fbottom"><span>© 2026 Loaded Logistics. All rights reserved.</span><span>Joseph Hawkinson &amp; Meredith Taylor</span></div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('navmark').innerHTML = window.MARK(40);
+  document.getElementById('footmark').innerHTML = window.MARK(40);
+  document.getElementById('heromark').innerHTML = window.MARK(420);
+
+  const hdr = document.getElementById('hdr');
+  const onScroll = () => hdr.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll(); addEventListener('scroll', onScroll, {passive:true});
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = document.querySelectorAll('.reveal');
+  if (reduce || !('IntersectionObserver' in window)) {
+    els.forEach(el => el.classList.add('in'));
+  } else {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) { e.target.style.transitionDelay = Math.min(i*60,180)+'ms'; e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold:0.14, rootMargin:'0px 0px -8% 0px'});
+    els.forEach(el => io.observe(el));
+  }
+
+  function sendQuote(){
+    var name = (document.getElementById('qName').value || '').trim();
+    var contact = (document.getElementById('qContact').value || '').trim();
+    var need = (document.getElementById('qNeed').value || '').trim();
+    if(!contact && !need){ alert('Add your contact info and what you need moved, then tap Request a Quote.'); return; }
+    var subject = 'Quote request' + (name ? ' — ' + name : '');
+    var body = 'Name: ' + name + '\nEmail or phone: ' + contact + '\n\nWhat to move:\n' + need;
+    window.location.href = 'mailto:j.hawkinson@loadedlogisticsnc.com'
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+  }
+</script>
+</body>
+</html>

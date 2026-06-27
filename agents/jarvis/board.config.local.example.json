@@ -1,0 +1,5 @@
+{
+  "_comment": "Copy this file to board.config.local.json (same folder) and fill in real values. That .local.json file is gitignored and holds secrets — never commit it. apiUrl is your deployed backend base URL with NO trailing slash; password is BOARD_PASSWORD.",
+  "apiUrl": "https://YOUR-BACKEND.up.railway.app",
+  "password": "YOUR_BOARD_PASSWORD"
+}

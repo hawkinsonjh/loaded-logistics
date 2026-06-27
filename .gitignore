@@ -1,0 +1,21 @@
+# secrets — never commit
+.env
+backend/.env
+board/.env
+agents/jarvis/board.config.local.json
+**/board.config.local.json
+
+# dependencies & build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+*.log
+
+# local machine state
+.claude/settings.local.json
+.DS_Store
+
+# backups & office temp/lock files
+*.zip
+~$*

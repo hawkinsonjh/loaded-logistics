@@ -1,0 +1,65 @@
+# Accounting / P&L — Playbook
+
+Role: act as Loaded Logistics' accountant/bookkeeper. Keep income and expenses straight,
+feed the Weekly/Monthly P&L tabs, and tell Joe where margin is being won or lost.
+
+## Domain conventions (from this project's CLAUDE.md — keep in sync if those change)
+
+- **Net per load** = `rate − pay − fuel − dispatch − repair` (`netOf` in `board/src/App.tsx`).
+- **RPM thresholds** (shared with Dispatcher): `<1.80` thin, `1.80–2.49` ok, `2.50+` strong.
+- Board tabs that consume this data: Weekly P&L, Monthly P&L, Lane Book.
+- `loads.source` distinguishes manually-entered loads from Gmail-ingested (`'email'`) loads
+  — useful for auditing where revenue is coming from as Phase 2 ingest matures.
+
+## Industry best practices (researched, ongoing)
+
+- **Cost-per-mile is the number that matters most.** Calculate it per truck, not just fleet-
+  wide: total fixed + variable costs for the period ÷ miles driven in that period. Compare
+  against rate-per-mile on every lane — "know your cost before you haul." [Source: Apex
+  Capital, Westport Financial]
+- **Track profit by lane, by driver, and by truck — not just in aggregate.** Generic small-
+  business bookkeeping (one P&L for the whole company) hides which lanes/drivers are
+  actually profitable. [Source: Westport Financial]
+- **Fuel surcharge is a pass-through, not revenue.** Booking it as straight income overstates
+  margin — track it separately and net it against fuel cost in management reporting, even if
+  it's combined with revenue for invoicing purposes. [Source: Apex Capital]
+- **Close the books at least monthly; weekly cash reviews if margins are tight.** Twice-
+  monthly is common for growing fleets. [Source: Apex Capital]
+- **Cash flow timing is the real risk, not profitability.** Drivers get paid weekly, fuel is
+  a daily cash outflow, but brokers/shippers often settle net-30/net-45+ — a profitable month
+  can still produce a cash crunch. Watch the gap, not just the P&L. [Source: Apex Capital]
+- **Tag every expense to a truck/unit** (class or location in accounting software) so
+  per-truck P&L is always derivable, and keep IFTA-relevant mileage/fuel-by-jurisdiction data
+  current for quarterly filing. [Source: Fit Small Business, Truckstop]
+
+## Lessons learned (appended by each daily run — newest on top)
+
+- **2026-06-26:** External (current): 2026 freight-factoring rates run **1–5% of invoice
+  face, most carriers 2–3.5%**; small fleets should target **2–2.5%**, and ~85% of
+  agreements are recourse (non-recourse adds ~0.5–1%). Watch hidden ACH/wire fees ($5–30
+  per transfer = $100–600/mo if funded daily). Industry avg broker pay cycle is ~40 days,
+  so net-30 brokers are above-average payers and qualify for better factoring rates.
+  [Source: AtoB, ResolvePay, Porter Freight Funding, June 2026 search]. New internal
+  pattern (historical seed, not live): the **dispatch fee is our single largest
+  controllable cost**. **62 of 215 loads (29%)** carry a dispatch fee totaling **$17,316.75**,
+  and the **median fee is exactly 30.0% of rate** (44 of those 62 loads sit at ~30%). On the
+  **19 dispatch-fee loads that also have complete pay+fuel data**, the loads earned **+$5,935
+  net before dispatch** but the **$6,580 dispatch fee flipped them to -$645 combined** — the
+  fee alone consumed 100%+ of operating profit on that slice. Worst case: h167 (Destination
+  Transport, dispatch $950 on a $1,450 rate = 66%, net -$288). Action for Joe: a flat 30%
+  dispatch cut is unsustainable on thin-RPM freight — either renegotiate the dispatch split,
+  set a minimum-RPM floor before accepting dispatched loads, or compare this 30% against
+  bringing dispatch in-house. (Note: distinct from a 2–2.5% factoring fee — these are
+  separate costs and both compress margin.)
+- **2026-06-25:** New external data point: ATRI's latest benchmark puts the industry
+  average full cost of operating a truck at **$2.26/mile** (2024 data), with non-fuel
+  costs alone at a record **$1.78/mile** — useful as an external yardstick against our
+  own per-load economics, since we don't yet track per-truck fixed costs. [Source: ATRI,
+  via americantruckersllc.com cost-per-mile coverage, June 2026 search]. In our own
+  `seed-data.json` (215 loads), every one of **Derek's 4 loads with complete pay+fuel
+  data is net-negative** — averaging **-$1,205/load** (range -$276 to -$1,959), e.g. h31
+  (C Cross Logistics, RPM 1.69, net -$1,959) and h39 (CH Robinson, RPM 1.31, net
+  -$1,784). This is a clear outlier: across all 118 loads with complete cost data,
+  only 14.4% are net-negative, vs. 100% for Derek's small sample — worth a closer look
+  at whether this is a short, unrepresentative stretch (his only loads are from
+  Oct–Dec 2025, before he may have left/rotated out) or a real driver/lane cost problem.

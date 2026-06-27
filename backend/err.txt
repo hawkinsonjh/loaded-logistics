@@ -1,0 +1,17 @@
+node:internal/modules/package_json_reader:208
+  const result = modulesBinding.getPackageScopeConfig(`${resolved}`);
+                                ^
+
+Error: Invalid package config /sessions/hopeful-great-wright/mnt/Loaded Logistics/backend/package.json.
+    at getPackageScopeConfig (node:internal/modules/package_json_reader:208:33)
+    at Object.getFileProtocolModuleFormat [as file:] (node:internal/modules/esm/get_format:147:72)
+    at defaultGetFormatWithoutErrors (node:internal/modules/esm/get_format:232:36)
+    at defaultResolve (node:internal/modules/esm/resolve:1009:13)
+    at checkSyntax (node:internal/main/check_syntax:68:27)
+    at node:internal/main/check_syntax:40:25
+    at loadESMIfNeeded (node:internal/main/check_syntax:56:3)
+    at node:internal/main/check_syntax:40:3 {
+  code: 'ERR_INVALID_PACKAGE_CONFIG'
+}
+
+Node.js v22.22.3
