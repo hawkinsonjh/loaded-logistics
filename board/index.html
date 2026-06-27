@@ -23,7 +23,6 @@
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
       }
-      /* tabular figures so columns of numbers line up */
       body { font-feature-settings: "cv11", "ss01"; }
       *:focus-visible { outline: 2px solid #F2A413; outline-offset: 2px; border-radius: 3px; }
       ::selection { background: #F2A41340; }
@@ -33,7 +32,13 @@
       *::-webkit-scrollbar-track { background: transparent; }
       *::-webkit-scrollbar-thumb { background: #2A323D; border-radius: 6px; border: 2px solid #0E1116; }
       *::-webkit-scrollbar-thumb:hover { background: #3A4350; }
-      @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition-duration: .01ms !important; } }
+      /* tactile lift on load/feed cards — shadow+transform only, so it never fights inline border colors */
+      .ll-card { transition: transform .16s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, background .2s ease; }
+      .ll-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0,0,0,.6); }
+      @media (prefers-reduced-motion: reduce) {
+        * { animation: none !important; transition-duration: .01ms !important; }
+        .ll-card:hover { transform: none; }
+      }
     </style>
   </head>
   <body>

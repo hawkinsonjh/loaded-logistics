@@ -106,8 +106,8 @@ function KpiBar({loads}){
 function LoadCard({l,onAssign,onAdvance,onBack,onDelete,drivers,compact}){
   const rpm=computeRpm(l), col=rpmColor(rpm);
   return (
-    <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderLeft:`3px solid ${col}`,
-      borderRadius:7,padding:"10px 11px",display:"flex",flexDirection:"column",gap:7}}>
+    <div className="ll-card" style={{background:C.panel2,border:`1px solid ${C.line}`,
+      borderRadius:8,padding:"10px 11px",display:"flex",flexDirection:"column",gap:7}}>
       <div className="flex items-start justify-between" style={{gap:8}}>
         <div style={{minWidth:0}}>
           <div style={{fontFamily:sans,fontSize:13.5,fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.broker||"—"}</div>
@@ -115,9 +115,12 @@ function LoadCard({l,onAssign,onAdvance,onBack,onDelete,drivers,compact}){
             {(l.origin||l.dest)?`${l.origin||"?"} → ${l.dest||"?"}`:(l.ref?("REF "+l.ref):(l.date||""))}
           </div>
         </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontFamily:mono,fontSize:18,fontWeight:700,color:col,lineHeight:1}}>{rpm!=null?("$"+rpm.toFixed(2)):"—"}</div>
-          <div style={{fontFamily:mono,fontSize:9,letterSpacing:.5,textTransform:"uppercase",color:col}}>{rpmLabel(rpm)} · rpm</div>
+        <div style={{textAlign:"right",flexShrink:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:5,background:col+"1A",border:`1px solid ${col}40`,borderRadius:6,padding:"3px 8px"}}>
+            <span style={{width:6,height:6,borderRadius:9,background:col}}/>
+            <span style={{fontFamily:mono,fontSize:16,fontWeight:700,color:col,lineHeight:1}}>{rpm!=null?("$"+rpm.toFixed(2)):"—"}</span>
+          </div>
+          <div style={{fontFamily:mono,fontSize:8.5,letterSpacing:.6,textTransform:"uppercase",color:col}}>{rpmLabel(rpm)} · rpm</div>
         </div>
       </div>
       <div className="flex items-center" style={{gap:14}}>
@@ -753,7 +756,7 @@ function GmailFeed({onChanged}){
             const state=m.error?["error",C.red]:added?["added",C.green]:["skipped",C.amber];
             const lane=[x.origin,x.dest].filter(Boolean).join(" → ");
             return (
-              <div key={m.id} style={{background:C.panel2,border:`1px solid ${C.line}`,borderLeft:`3px solid ${state[1]}`,borderRadius:7,padding:"8px 10px"}}>
+              <div key={m.id} className="ll-card" style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:8,padding:"8px 10px"}}>
                 <div className="flex items-center justify-between" style={{gap:8}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{fontFamily:sans,fontSize:12.5,color:C.ink,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.subject||"(no subject)"}</div>

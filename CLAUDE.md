@@ -176,9 +176,11 @@ Neon (Postgres) <- backend (Express) <- 10s poll - board (React SPA) - team brow
     (the `documents` table). Prototype tradeoff: images-in-Postgres is fine for ~5 drivers;
     production should move bytes to object storage and keep only the URL.
 
-  - **Design-skills follow-up (not yet done):** the live `App.tsx` still uses banned side-stripe
-    borders (`borderLeft: 3px` on `LoadCard` ~line 109 and the chat row ~line 756). The five new
-    surfaces are already side-stripe-free per `impeccable`; the board itself wants the same pass.
+  - **Design-skills pass (done):** all surfaces are side-stripe-free per `impeccable`. `LoadCard`
+    and the Rate-Cons feed row use a neutral full border + a shared `.ll-card` hover lift (defined
+    in `board/index.html`, transform/shadow only, reduced-motion aware); `LoadCard`'s RPM moved
+    into a tinted pill badge with a status dot. New surfaces use Inter / JetBrains Mono (loaded in
+    `index.html`); `App.tsx` keeps its own system-font stack.
 
 ## Domain conventions
 
