@@ -34,6 +34,27 @@ feed the Weekly/Monthly P&L tabs, and tell Joe where margin is being won or lost
 
 ## Lessons learned (appended by each daily run — newest on top)
 
+- **2026-06-28:** External (current): trucking revenue is strongly **seasonal** — the slowest
+  window is **January–mid-February** (spot rates drop 15–25% vs the Oct–Nov peak), then rates
+  climb through **produce season (March–October, longest in the South)** and the spring retail
+  push. For 2026 specifically the produce season started early and the truckload market is
+  tightening; spot rates are projected **20–25% above prior-year levels** for the rest of 2026,
+  and reefer rates can swing **30–50¢/mi** between peak (≈$3.00) and late-summer (≈$2.40).
+  [Source: Truckstop produce-season guide, FreightWaves, TT News, RXO Q2-2026 forecast — June
+  2026 search.] New internal pattern (historical seed, not live): **our own numbers track that
+  seasonal curve and show the business inflected hard in early 2026.** Monthly revenue by `rate`:
+  the first 9 months (May 2025–Jan 2026) total just **$48,870 across 55 loads**, then **Feb 2026
+  onward is $279,704 across 160 loads = 85% of all-time revenue**. Volume jumped from ~7 loads/mo
+  in 2025 to **29–40 loads/mo** starting Feb 2026. Crucially, **$/mi rose right with the season**:
+  $1.81 (Jan) → $2.45 (Feb) → $2.49 (Mar) → $2.84 (Apr) → **$3.28 (May)** → $3.25 (Jun) — the
+  exact spring/produce ramp the research describes, and well above ATRI's $2.26/mi cost benchmark
+  in those months. On the 118 complete-cost loads, monthly **net margin** firmed up the same way:
+  negative in late 2025 (Nov −96%, Dec −198%, tiny n), then steady **27–41%** every month Feb–Jun
+  2026. Action for Joe: this is now a **real, repeatable freight book, not a side hustle** — but
+  the seasonal data says **don't extrapolate May/June's $3.25+/mi into Q3/Q4**. Build the cash plan
+  around a **late-summer rate fade and the Jan–mid-Feb trough** (that's exactly when 2025 lost
+  money): bank margin now, line up factoring/credit before January, and lean into produce/reefer
+  lanes while rates are elevated through the rest of 2026.
 - **2026-06-26:** External (current): 2026 freight-factoring rates run **1–5% of invoice
   face, most carriers 2–3.5%**; small fleets should target **2–2.5%**, and ~85% of
   agreements are recourse (non-recourse adds ~0.5–1%). Watch hidden ACH/wire fees ($5–30

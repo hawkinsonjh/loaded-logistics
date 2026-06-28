@@ -70,3 +70,36 @@ before delivery to push toward the <15% target.
 
 **Playbook updated:** added one dated entry to top of "Lessons learned" (2026-06-25 entry
 preserved below it).
+
+---
+
+## 2026-06-28
+
+**Reviewed:** `agents/dispatcher/playbook.md` (full read), one web search on day-of-week /
+2026 spot-rate dispatch patterns, and `backend/seed-data.json` (215 historical loads, parsed
+via python3).
+
+**Web search:** Query on day-of-week RPM / 2026 spot rates. The search confirmed broad market
+strength — DAT National Truckload Index hit a cycle high of **$2.82/mi** (7-day avg, fuel
+included), spot running **20–25% above prior-year** and **15–25% above contract** — but
+explicitly returned **no day-of-week breakdown**, so I derived that angle from our own data.
+Sources: Truck Dispatch Experts ("2026 Freight Rate Recovery"), TT News ("Truckload Spot
+Rates… Through 2026").
+
+**Data finding (historical seed, not live; bucketed each load by `date` weekday):** Day-of-week
+RPM is not flat. Two robust signals, same direction:
+(1) **Thin loads cluster mid-week.** Tue + Wed pickups = **20% thin (18/90 <1.80 RPM)** vs
+**10% (12/120)** on all other days; **60% of all 30 thin loads in the file fall on Tue/Wed.**
+(2) **Weekend freight is consistently strong.** All **22 Sat/Sun loads cleared the thin line
+(0 thin)**, median **3.01 RPM**, min 1.84 — vs the 2.76 fleet average.
+Methodology note: the raw Wednesday *mean* (3.49) is misleading — outliers h33 ($150/4 mi =
+37.5 RPM) and h200 ($2,600/710 mi = 7.04) inflate it; honest Wednesday figure is the **2.44
+median**. Cited thin-rates and medians, not the skewed mean.
+
+**Flagged for Joe:** (a) Hold the line harder on Tue/Wed — that's historically when we've
+caved to sub-1.80 rates; don't book thin those days without a real reason. (b) Keep at least
+one truck available into the weekend — Sat/Sun has never produced a thin load for us and pays a
+premium, so don't auto-park Friday afternoon.
+
+**Playbook updated:** added one dated 2026-06-28 entry to top of "Lessons learned" (prior
+entries preserved below).
