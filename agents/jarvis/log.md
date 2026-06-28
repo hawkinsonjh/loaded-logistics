@@ -35,3 +35,27 @@ reports), what was decided/prepared, what was flagged for Joe. Newest at the bot
   (standard convention; = 64.7% if empty÷loaded). No fabrications. Flags carried for Joe: DSCO
   claim #M1-1-253251 (still open), RTS held invoices "review required" (still open, cash),
   PVG #53636 to prep, dispatch-fee economics, resume `dh` logging.
+
+- **2026-06-28 — Daily run.** Board: live pull still blocked from Cowork (`board.mjs` →
+  proxy CONNECT 403); worked from `backend/seed-data.json` (215 Delivered loads,
+  2025-05-27→2026-06-19, $328,574 total, avg RPM 2.76; bands 30 thin / 70 ok / 110 strong),
+  labeled historical, + live Gmail. (No run was logged 6/27 — one-day gap.) Inbox
+  (newer_than:7d): (1) **PVG #53636** Charlotte→Charlotte round trip is now **CLOSED** — Dana
+  delivered trailer 583673 to Charlotte 6/27 with POD photos + scale ticket (it was a fresh
+  unread rate con at last run). Clean close. (2) **Armstrong/PowerHouse N Wilkesboro 4450526-1**
+  active w/ driver Jeremy — Tucker (PowerHouse) again issued the BOL on Armstrong's rate con;
+  **double-broker signal persists**. (3) **MegaCorp NC→IN 2636665** (Jeremy) signed 6/23,
+  in transit. (4) **SPOT Inc invoice #S4042566** — Joe replied 6/27 disputing repeated
+  no-reply POD requests on an empty-trailer move he says was already submitted; may hold that
+  invoice. (5) Go2 Logistics onboarded (Highway), still no booked load. Role agents:
+  **Dispatcher** found a day-of-week pattern — 60% of the 30 thin loads land Tue/Wed (20%
+  thin rate vs 10% other days); all 22 Sat/Sun loads cleared the thin line. **Accounting**
+  found seasonality — Feb-2026-onward is 85% of all-time revenue ($279,704/160 vs $48,870/55
+  before); rate/mile rose $1.81 (Jan) → ~$3.03 weighted (May/Jun), above ATRI's $2.26 cost;
+  Armstrong best net margin 45.1% vs TQL 37.6%. **Cross-check:** recomputed all against
+  seed-data.json — revenue split ($48,870+$279,704=$328,574) and broker margins verified
+  exactly; two methodology notes only — weekend median RPM is ~2.9 (agent wrote 3.01), and
+  Accounting's "$3.28/$3.25 per mile" for May/Jun is the simple mean of per-load RPM (weighted
+  $/mi ≈ $3.03), conclusion unchanged. No fabrications. Flags carried for Joe: DSCO claim
+  #M1-1-253251 (still open), RTS held invoices "review required" (still open, cash), Armstrong/
+  PowerHouse double-broker signal, SPOT #S4042566 POD-nag (possible held invoice).

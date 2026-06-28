@@ -35,6 +35,22 @@ flag anything that needs Joe's attention.
 
 ## Lessons learned (appended by each daily run — newest on top)
 
+- **2026-06-28:** New from research (June 2026): the dry-van spot market hit a cycle high of
+  **$2.82/mi** on the DAT National Truckload Index (7-day avg, fuel included), with spot rates
+  running **20–25% above prior-year** and **15–25% above contract** on most lanes through 2026
+  — confirming this is a carrier's market where holding out for a better number pays. [Source:
+  Truck Dispatch Experts, "2026 Freight Rate Recovery"; TT News]. **Fresh data angle —
+  day-of-week RPM** (historical seed, not live; using each load's `date`). Two clean signals,
+  both pointing the same way: (1) **Thin loads cluster mid-week.** Tuesday + Wednesday pickups
+  run **20% thin (18/90 loads <1.80 RPM)** vs **10% (12/120)** on every other day — **60% of
+  all 30 thin loads in the file fall on Tue/Wed**. (2) **Weekend freight is consistently
+  strong.** All **22 Sat/Sun loads cleared the thin line (0 thin)**, median **3.01 RPM**, lowest
+  was 1.84 — vs the 2.76 fleet average. Caveat: ignore the raw Wednesday *mean* (3.49) — it's a
+  mirage from outliers like h33 ($150 / 4 mi = 37.5 RPM) and h200 ($2,600 / 710 mi = 7.04); the
+  honest Wednesday number is the **2.44 median**. Action for Joe: (a) on Tue/Wed, hold the line
+  harder — that's exactly when we've historically caved to thin rates, so don't book <1.80
+  without a real reason; (b) keep at least one truck available into the weekend — Sat/Sun has
+  never produced a thin load for us and pays a premium, so don't auto-park Friday afternoon.
 - **2026-06-26:** New from research (June 2026): deadhead % is one of the few cost levers a
   fleet directly controls, and the 2026 best-practice target is **under 15% empty miles** —
   start the backhaul search before the current load delivers; every ~10% cut in deadhead is

@@ -4,6 +4,36 @@ Append-only. One entry per run: date, what was reviewed, what was found, what wa
 
 ---
 
+## 2026-06-28
+
+**Reviewed:** `agents/accounting/playbook.md` (full) + `log.md`, one web search on trucking
+revenue seasonality / produce-season rate patterns for 2026, and `backend/seed-data.json`
+(215 historical loads) — computed monthly revenue/$-per-mile trend (all loads) plus monthly
+and broker-level net margin on the 118 complete pay+fuel loads. All numbers from file.
+
+**Found:**
+- External: trucking is strongly seasonal — Jan–mid-Feb is the trough (spot −15–25% vs
+  Oct–Nov peak), then rates ramp through produce season (Mar–Oct) and spring retail. For
+  2026: early produce season + tightening market, spot rates projected 20–25% above prior
+  year for the rest of the year; reefer can swing 30–50¢/mi peak-to-trough. [Sources:
+  Truckstop, FreightWaves, TT News, RXO Q2-2026 forecast — June 2026 search.] New to playbook.
+- Internal (historical seed, not live): the book inflected hard in early 2026. May 2025–Jan
+  2026 = $48,870 / 55 loads; **Feb 2026 onward = $279,704 / 160 loads = 85% of all-time
+  revenue**. Volume ~7 loads/mo (2025) → 29–40/mo (Feb 2026+). $/mi climbed with the season:
+  Jan $1.81 → Feb $2.45 → Mar $2.49 → Apr $2.84 → **May $3.28** → Jun $3.25. Monthly net
+  margin (complete-cost loads) went from negative in late 2025 to a steady 27–41% Feb–Jun 2026.
+- Side note (not led with): broker NET margin on complete-cost loads — **Armstrong is the
+  most profitable at 45.1%** (n=14, $896/load), ahead of TQL's 37.6% (n=22, $755/load)
+  despite TQL's higher volume; PVG 29.3%, Norfleet 25.2%. Flagged for a future revenue-mix pass.
+
+**Flagged for Joe:** This is now a real, repeatable freight book, not a side hustle — but the
+seasonal data warns against extrapolating May/Jun's $3.25+/mi into Q3/Q4. Plan cash around a
+late-summer rate fade and the Jan–mid-Feb trough (exactly when 2025 lost money): bank margin
+now, secure factoring/credit before January, and lean into produce/reefer lanes while rates
+stay elevated through the rest of 2026.
+
+---
+
 ## 2026-06-26
 
 **Reviewed:** `agents/accounting/playbook.md` (full), one web search on current (2026)
