@@ -40,8 +40,14 @@ function parseJSON(raw: string): any {
 
 /* ===================== SOCIAL CONTEXT ===================== */
 
-async function buildSocialContext() {
-  const loads = await q("select rate, miles, rpm, driver, unit, broker, origin, dest, status from loads order by created_at desc limit 100");
+// Per-org company name, defaulting to a generic label.
+async function orgName(orgId: string): Promise<string> {
+  const rows = await q("select name from orgs where id=$1", [orgId]).catch(() => []);
+  return rows[0]?.name || "our carrier";
+}
+
+async function buildSocialContext(orgId: string) {
+  const loads = await q("select rate, miles, rpm, driver, unit, broker, origin, dest, status from loads where org_id=$1 order by created_at desc limit 100", [orgId]);
   let rev = 0, miles = 0, rpmN = 0, rpmC = 0;
   const drivers = new Set<string>();
   const units = new Set<string>();
@@ -61,7 +67,7 @@ async function buildSocialContext() {
   });
 
   return {
-    companyName: "Loaded Logistics",
+    companyName: await orgName(orgId),
     truckCount: units.size,
     driverCount: drivers.size,
     avgRpm: rpmC ? +(rpmN / rpmC).toFixed(2) : null,
@@ -93,14 +99,15 @@ const TOPIC_PROMPTS: Record<string, string> = {
 
 export async function generateSocialPost(
   platform: string,
-  topic: string
+  topic: string,
+  orgId: string
 ): Promise<{ post: string; hashtags: string[] }> {
-  const ctx = await buildSocialContext();
+  const ctx = await buildSocialContext(orgId);
   const rules = PLATFORM_RULES[platform] ?? PLATFORM_RULES["Facebook"];
   const topicGuide = TOPIC_PROMPTS[topic] ?? TOPIC_PROMPTS["Driver Recruiting"];
 
   const system =
-    `You are a social media strategist writing for Loaded Logistics, a small but profitable trucking carrier. ` +
+    `You are a social media strategist writing for ${ctx.companyName}, a small but profitable trucking carrier. ` +
     `Use real numbers from the fleet context to make posts specific and credible. ` +
     `Tone: authentic trucking industry voice — knowledgeable, straight-talking, not corporate. ` +
     `${topicGuide} ` +
@@ -198,14 +205,14 @@ const RECRUITING_TOOLS = [
 export type RecruitingAction = { type: string; [k: string]: any };
 export type RecruitingTrace = { tool: string; input: any; result: string };
 
-async function runRecruitingTool(name: string, input: any): Promise<{ result: string; action?: RecruitingAction }> {
+async function runRecruitingTool(name: string, input: any, orgId: string): Promise<{ result: string; action?: RecruitingAction }> {
   switch (name) {
     case "list_candidates": {
       const status = input.status || "all";
       const rows =
         status === "all"
-          ? await q("select * from candidates order by created_at desc")
-          : await q("select * from candidates where status=$1 order by created_at desc", [status]);
+          ? await q("select * from candidates where org_id=$1 order by created_at desc", [orgId])
+          : await q("select * from candidates where org_id=$1 and status=$2 order by created_at desc", [orgId, status]);
       return { result: JSON.stringify(rows) };
     }
 
@@ -220,8 +227,9 @@ async function runRecruitingTool(name: string, input: any): Promise<{ result: st
       if (!sets.length) return { result: "No valid fields" };
       sets.push("updated_at=now()");
       vals.push(input.id);
+      vals.push(orgId);
       const rows = await q(
-        `update candidates set ${sets.join(",")} where id=$${vals.length} returning *`,
+        `update candidates set ${sets.join(",")} where id=$${vals.length - 1} and org_id=$${vals.length} returning *`,
         vals
       );
       if (!rows.length) return { result: "Candidate not found: " + input.id };
@@ -232,9 +240,8 @@ async function runRecruitingTool(name: string, input: any): Promise<{ result: st
     }
 
     case "add_candidate": {
-      const cols = Object.keys(input).filter(k => CAND_SAFE_COLS.includes(k));
-      if (!cols.length) return { result: "No valid fields" };
-      const vals = cols.map(k => (input[k] === "" ? null : input[k]));
+      const cols = ["org_id", ...Object.keys(input).filter(k => CAND_SAFE_COLS.includes(k))];
+      const vals = [orgId, ...cols.slice(1).map(k => (input[k] === "" ? null : input[k]))];
       const ph = vals.map((_, i) => `$${i + 1}`);
       const rows = await q(
         `insert into candidates (${cols.join(",")}) values (${ph.join(",")}) returning *`,
@@ -244,7 +251,7 @@ async function runRecruitingTool(name: string, input: any): Promise<{ result: st
     }
 
     case "get_fleet_needs": {
-      const loads = await q("select driver, unit, status from loads");
+      const loads = await q("select driver, unit, status from loads where org_id=$1", [orgId]);
       const units = new Set(loads.map((l: any) => l.unit).filter(Boolean));
       const activeDrivers = new Set(
         loads.filter((l: any) => l.status !== "Delivered").map((l: any) => l.driver).filter(Boolean)
@@ -262,12 +269,13 @@ async function runRecruitingTool(name: string, input: any): Promise<{ result: st
     }
 
     case "draft_outreach": {
-      const rows = await q("select * from candidates where id=$1", [input.candidate_id]);
+      const rows = await q("select * from candidates where id=$1 and org_id=$2", [input.candidate_id, orgId]);
       if (!rows.length) return { result: "Candidate not found" };
       const c = rows[0];
 
       const loads = await q(
-        "select rate, miles, rpm, pay from loads where status='Delivered' order by created_at desc limit 30"
+        "select rate, miles, rpm, pay from loads where org_id=$1 and status='Delivered' order by created_at desc limit 30",
+        [orgId]
       );
       const avgRpm =
         loads.reduce((s: number, l: any) => s + (l.rpm ?? (l.rate && l.miles ? l.rate / l.miles : 0)), 0) /
@@ -276,7 +284,7 @@ async function runRecruitingTool(name: string, input: any): Promise<{ result: st
         loads.reduce((s: number, l: any) => s + (l.pay || 0), 0) / (loads.length || 1);
 
       const system =
-        `You are a dispatch manager at Loaded Logistics reaching out to a CDL driver candidate. ` +
+        `You are a dispatch manager at ${await orgName(orgId)} reaching out to a CDL driver candidate. ` +
         `Write a brief, natural outreach message for ${input.channel}. ` +
         `Tone: friendly and direct — not salesy or scripted. Use first-person. ` +
         `For 'text' keep it under 160 characters. For 'email' use 3–4 sentences max. For 'Facebook DM' aim for 2–3 sentences. ` +
@@ -303,19 +311,19 @@ async function runRecruitingTool(name: string, input: any): Promise<{ result: st
   }
 }
 
-export async function runRecruitingAgent(goal: string): Promise<{
+export async function runRecruitingAgent(goal: string, orgId: string): Promise<{
   actions: RecruitingAction[];
   summary: string;
   trace: RecruitingTrace[];
 }> {
-  const loads = await q("select driver, unit, status from loads");
+  const loads = await q("select driver, unit, status from loads where org_id=$1", [orgId]);
   const units = new Set(loads.map((l: any) => l.unit).filter(Boolean));
   const active = new Set(
     loads.filter((l: any) => l.status !== "Delivered").map((l: any) => l.driver).filter(Boolean)
   );
 
   const system =
-    `You are a driver recruiting agent for Loaded Logistics, a small carrier running ${units.size} trucks with ${active.size} active drivers. ` +
+    `You are a driver recruiting agent for ${await orgName(orgId)}, a small carrier running ${units.size} trucks with ${active.size} active drivers. ` +
     `You manage the candidate pipeline (New→Contacted→Interview→Offer→Hired | Rejected) and draft personalised outreach. ` +
     `Be decisive: advance promising candidates, draft real messages, flag anyone who should be prioritised. ` +
     `Call finish() when done. Limit: 8 tool calls.`;
@@ -337,7 +345,7 @@ export async function runRecruitingAgent(goal: string): Promise<{
     const results: any[] = [];
     let done = false;
     for (const tu of uses) {
-      const { result, action } = await runRecruitingTool(tu.name, tu.input);
+      const { result, action } = await runRecruitingTool(tu.name, tu.input, orgId);
       trace.push({ tool: tu.name, input: tu.input, result });
       if (action) {
         if (action.type === "finish") { summary = action.summary; done = true; }

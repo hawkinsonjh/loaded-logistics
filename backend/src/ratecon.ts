@@ -110,9 +110,9 @@ export interface RateConRecord {
   loadId: string | null;
 }
 
-export async function processRateCon(threadId: string): Promise<RateConRecord> {
-  // Idempotent — return existing record if already processed
-  const existing = await q("select * from emails where gmail_id=$1", [threadId]);
+export async function processRateCon(threadId: string, orgId: string): Promise<RateConRecord> {
+  // Idempotent — return existing record if already processed for this org
+  const existing = await q("select * from emails where gmail_id=$1 and org_id=$2", [threadId, orgId]);
   if (existing.length) return formatRecord(existing[0]);
 
   // Fetch thread from Gmail
@@ -128,7 +128,7 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
   const trustedSender = isTrustedRateConSender(senderAddr);
 
   // Load known brokers from DB for reviewer context
-  const bRows = await q("select distinct broker from loads where broker is not null").catch(() => []);
+  const bRows = await q("select distinct broker from loads where org_id=$1 and broker is not null", [orgId]).catch(() => []);
   const boardBrokers = bRows.map((r: any) => r.broker).filter(Boolean);
 
   // Agent 1 — extract
@@ -153,11 +153,12 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
 
   const row = await q(
     `insert into emails
-       (mailbox, gmail_id, from_addr, subject, received_at, is_rate_con, raw_excerpt,
+       (org_id, mailbox, gmail_id, from_addr, subject, received_at, is_rate_con, raw_excerpt,
         extracted_json, reviewer_confidence, reviewer_flags, review_status)
-     values ('inbox',$1,$2,$3,now(),true,$4,$5,$6,$7,$8)
+     values ($1,'inbox',$2,$3,$4,now(),true,$5,$6,$7,$8,$9)
      returning *`,
     [
+      orgId,
       threadId,
       senderAddr,
       thread.subject,
@@ -172,7 +173,7 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
 
   // Auto-create load if reviewer approved (includes all trusted senders)
   if (review.approved) {
-    await createLoad(finalLoad, emailRow.id, threadId);
+    await createLoad(finalLoad, emailRow.id, threadId, orgId);
     const updated = await q("select * from emails where id=$1", [emailRow.id]);
     return formatRecord(updated[0]);
   }
@@ -180,11 +181,11 @@ export async function processRateCon(threadId: string): Promise<RateConRecord> {
   return formatRecord(emailRow);
 }
 
-async function createLoad(load: any, emailId: string, gmailId: string): Promise<any> {
+async function createLoad(load: any, emailId: string, gmailId: string, orgId: string): Promise<any> {
   const ALLOWED = ["broker","rate","miles","origin","dest","date","ref","commodity"];
-  const cols = ["source","source_email_id","status"];
-  const vals: any[] = ["email", gmailId, "Available"];
-  const ph = ["$1","$2","$3"];
+  const cols = ["org_id","source","source_email_id","status"];
+  const vals: any[] = [orgId, "email", gmailId, "Available"];
+  const ph = ["$1","$2","$3","$4"];
 
   for (const c of ALLOWED) {
     if (load[c] != null && load[c] !== "") {
@@ -204,26 +205,27 @@ async function createLoad(load: any, emailId: string, gmailId: string): Promise<
 }
 
 // Human approves a pending extraction → creates the load
-export async function approvePending(emailId: string): Promise<any> {
-  const rows = await q("select * from emails where id=$1", [emailId]);
+export async function approvePending(emailId: string, orgId: string): Promise<any> {
+  const rows = await q("select * from emails where id=$1 and org_id=$2", [emailId, orgId]);
   if (!rows.length) throw new Error("Not found");
   const e = rows[0];
   if (e.review_status === "approved" && e.parsed_load_id) throw new Error("Already approved");
-  const load = await createLoad(e.extracted_json, emailId, e.gmail_id);
+  const load = await createLoad(e.extracted_json, emailId, e.gmail_id, orgId);
   return load;
 }
 
 // Human rejects a pending extraction
-export async function rejectPending(emailId: string): Promise<void> {
-  await q("update emails set review_status='rejected' where id=$1", [emailId]);
+export async function rejectPending(emailId: string, orgId: string): Promise<void> {
+  await q("update emails set review_status='rejected' where id=$1 and org_id=$2", [emailId, orgId]);
 }
 
 // All processed rate cons for the review queue UI
-export async function getRateConQueue(): Promise<RateConRecord[]> {
+export async function getRateConQueue(orgId: string): Promise<RateConRecord[]> {
   const rows = await q(
     `select e.*, to_char(e.received_at,'Mon DD HH24:MI') as received_fmt
-     from emails e where e.is_rate_con=true
+     from emails e where e.is_rate_con=true and e.org_id=$1
      order by e.received_at desc limit 50`,
+    [orgId],
   );
   return rows.map(formatRecord);
 }

@@ -3,6 +3,39 @@
 
 create extension if not exists "pgcrypto";
 
+-- ============================ MULTI-TENANCY ============================
+-- An org is one carrier (customer). Users belong to an org. All business
+-- data (loads, messages, candidates, emails) is scoped by org_id.
+
+create table if not exists orgs (
+  id                     uuid primary key default gen_random_uuid(),
+  name                   text not null,
+  slug                   text unique,
+  plan                   text not null default 'trial',     -- trial | starter | growth | fleet
+  plan_status            text not null default 'trialing',  -- trialing | active | past_due | canceled
+  trial_ends_at          timestamptz,
+  truck_limit            integer not null default 5,         -- -1 = unlimited
+  stripe_customer_id     text,
+  stripe_subscription_id text,
+  -- per-org integration config (so each carrier brings their own Gmail/key)
+  settings               jsonb not null default '{}'::jsonb,
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now()
+);
+create index if not exists orgs_stripe_customer_idx on orgs (stripe_customer_id);
+
+create table if not exists users (
+  id            uuid primary key default gen_random_uuid(),
+  org_id        uuid not null references orgs(id) on delete cascade,
+  email         text not null unique,
+  name          text,
+  password_hash text not null,                 -- scrypt: salt:hashHex
+  role          text not null default 'owner', -- owner | dispatcher
+  created_at    timestamptz not null default now()
+);
+create index if not exists users_org_idx on users (org_id);
+create index if not exists users_email_idx on users (lower(email));
+
 create table if not exists loads (
   id              uuid primary key default gen_random_uuid(),
   date            date,
@@ -37,6 +70,10 @@ alter table loads add column if not exists dispatch numeric;
 alter table loads add column if not exists repair numeric;
 alter table loads add column if not exists dh integer;
 
+-- multi-tenant scoping (idempotent; backfilled to default org in seed.ts)
+alter table loads add column if not exists org_id uuid;
+create index if not exists loads_org_idx on loads (org_id);
+
 create table if not exists messages (
   id        uuid primary key default gen_random_uuid(),
   who       text not null default 'Dispatch',
@@ -45,6 +82,8 @@ create table if not exists messages (
   ts        timestamptz not null default now()
 );
 create index if not exists messages_ts_idx on messages (ts);
+alter table messages add column if not exists org_id uuid;
+create index if not exists messages_org_idx on messages (org_id);
 
 -- Phase 2/3 placeholders (created now so the email service has a home later)
 create table if not exists emails (
@@ -68,6 +107,8 @@ alter table emails add column if not exists review_status     text not null defa
 
 create index if not exists emails_review_status_idx on emails (review_status);
 create index if not exists emails_received_idx      on emails (received_at desc);
+alter table emails add column if not exists org_id uuid;
+create index if not exists emails_org_idx on emails (org_id);
 
 create table if not exists digests (
   id           uuid primary key default gen_random_uuid(),
@@ -76,6 +117,7 @@ create table if not exists digests (
   metrics_json jsonb,
   created_at   timestamptz not null default now()
 );
+alter table digests add column if not exists org_id uuid;
 
 -- Driver recruiting pipeline
 create table if not exists candidates (
@@ -92,3 +134,5 @@ create table if not exists candidates (
   updated_at  timestamptz not null default now()
 );
 create index if not exists candidates_status_idx on candidates (status);
+alter table candidates add column if not exists org_id uuid;
+create index if not exists candidates_org_idx on candidates (org_id);

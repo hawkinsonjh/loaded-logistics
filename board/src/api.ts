@@ -22,6 +22,7 @@ async function req(path: string, opts: RequestInit = {}) {
   return r;
 }
 
+// Legacy shared team-password login (Joe's existing team → default org).
 export async function login(password: string): Promise<string | null> {
   const r = await fetch(BASE + "/api/login", {
     method: "POST",
@@ -32,6 +33,80 @@ export async function login(password: string): Promise<string | null> {
   const d = await r.json();
   localStorage.setItem(TOKEN_KEY, d.token);
   return d.token;
+}
+
+// New carrier account signup — creates org + owner, starts 14-day trial.
+export async function signup(data: { orgName: string; email: string; password: string; name?: string }): Promise<any> {
+  const r = await fetch(BASE + "/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Signup failed");
+  localStorage.setItem(TOKEN_KEY, d.token);
+  return d;
+}
+
+// Email/password login for real accounts.
+export async function loginWithEmail(email: string, password: string): Promise<any> {
+  const r = await fetch(BASE + "/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Login failed");
+  localStorage.setItem(TOKEN_KEY, d.token);
+  return d;
+}
+
+// Session context: org, plan, usage, access state.
+export async function getMe(): Promise<any> {
+  const r = await req("/api/auth/me", { headers: authHeaders() });
+  return r.json();
+}
+
+// Plans + billing
+export async function getPlans(): Promise<{ configured: boolean; plans: any[] }> {
+  const r = await req("/api/plans", { headers: authHeaders() });
+  return r.json();
+}
+export async function startCheckout(planId: string): Promise<{ url: string }> {
+  const r = await req("/api/billing/checkout", { method: "POST", headers: authHeaders(), body: JSON.stringify({ planId }) });
+  return r.json();
+}
+export async function openBillingPortal(): Promise<{ url: string }> {
+  const r = await req("/api/billing/portal", { method: "POST", headers: authHeaders(), body: "{}" });
+  return r.json();
+}
+
+// Org settings (driver roster, onboarding flag)
+export async function getOrgSettings(): Promise<any> {
+  const r = await req("/api/org/settings", { headers: authHeaders() });
+  return r.json();
+}
+export async function patchOrgSettings(patch: any): Promise<any> {
+  const r = await req("/api/org/settings", { method: "PATCH", headers: authHeaders(), body: JSON.stringify(patch) });
+  return r.json();
+}
+export async function renameOrg(name: string): Promise<any> {
+  const r = await req("/api/org", { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ name }) });
+  return r.json();
+}
+
+// CSV export — triggers a browser download of the org's loads.
+export async function exportLoadsCsv(): Promise<void> {
+  const r = await req("/api/loads/export.csv", { headers: authHeaders() });
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "loads-export.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export async function getLoads(): Promise<any[]> {

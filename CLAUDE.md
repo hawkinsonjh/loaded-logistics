@@ -50,14 +50,36 @@ There are **no tests** in any package.
 |----------|---------|-------|
 | `DATABASE_URL` | — | Neon Postgres connection string; SSL auto-configured |
 | `ANTHROPIC_API_KEY` | — | Required for all `/api/ai/*` routes |
-| `BOARD_PASSWORD` | `"loaded"` | Shared team password |
-| `AUTH_SECRET` | `"change-me-in-production"` | HMAC secret for token signing |
+| `BOARD_PASSWORD` | `"loaded"` | Legacy shared team password → default org |
+| `AUTH_SECRET` | `"change-me-in-production"` | HMAC secret for signing session tokens |
+| `OWNER_EMAIL` | `hawkinsonjh@gmail.com` | Owner account email created for the default org by `migrate` |
+| `OWNER_PASSWORD` | falls back to `BOARD_PASSWORD` | Owner account password for the default org |
+| `APP_URL` | `http://localhost:5173` | Board origin; used for Stripe success/cancel/return URLs |
+| `STRIPE_SECRET_KEY` | — | Stripe secret key; if unset, billing endpoints return a clear "not configured" error and the app runs on trial |
+| `STRIPE_WEBHOOK_SECRET` | — | Signing secret for the `/api/billing/webhook` endpoint |
+| `STRIPE_PRICE_STARTER` | — | Stripe Price ID for the Starter plan ($79/mo) |
+| `STRIPE_PRICE_GROWTH` | — | Stripe Price ID for the Growth plan ($149/mo) |
+| `STRIPE_PRICE_FLEET` | — | Stripe Price ID for the Fleet plan ($299/mo) |
 | `PORT` | `8080` | Railway sets this automatically |
 
 ### Board
 | Variable | Notes |
 |----------|-------|
 | `VITE_API_URL` | Backend origin (e.g. `https://loaded-api.up.railway.app`). Empty string means same origin. |
+
+## Multi-tenancy & billing (SaaS foundation)
+
+The app is multi-tenant. Every business row (`loads`, `messages`, `emails`, `candidates`, `digests`) carries an `org_id`, and every query is scoped to the authenticated user's org.
+
+- **`orgs`** — one carrier (customer). Holds `plan` (`trial|starter|growth|fleet`), `plan_status`, `trial_ends_at`, `truck_limit`, Stripe ids, and a `settings` jsonb (driver roster, `onboarded` flag).
+- **`users`** — belong to an org; `email` + scrypt `password_hash` + `role`. Signup creates an org + owner user and starts a 14-day trial.
+- **`plans.ts`** — plan tiers, prices, truck limits, and `DEFAULT_ORG_ID` (fixed UUID `00000000-…-0001` for Joe's original org).
+- **`auth.ts`** — scrypt hashing + compact signed tokens (`base64url(payload).hmacSig`) carrying `{uid, oid, role, exp}`. `requireAuth` populates `req.orgId`. The legacy shared-password login (`POST /api/login`) still works and maps to the default org so Joe's crew keeps their access.
+- **`billing.ts`** — Stripe checkout, customer portal, webhook sync (updates `plan`/`plan_status`/`truck_limit`), and plan gating (`withinTruckLimit`, `accessState`). Degrades gracefully when Stripe env vars are absent.
+
+New auth/billing routes: `POST /api/auth/signup`, `POST /api/auth/login`, `GET /api/auth/me`, `GET /api/plans`, `POST /api/billing/checkout`, `POST /api/billing/portal`, `POST /api/billing/webhook` (raw body, mounted before `express.json`), `GET|PATCH /api/org/settings`, `PATCH /api/org`, and `GET /api/loads/export.csv` (QuickBooks-friendly export).
+
+**Stripe setup (to enable paid plans):** create three recurring Products/Prices in the Stripe dashboard, put their Price IDs in `STRIPE_PRICE_*`, set `STRIPE_SECRET_KEY` + `APP_URL`, and add a webhook endpoint → `${API}/api/billing/webhook` with `STRIPE_WEBHOOK_SECRET`. Run `npm run migrate` after deploy to create the `orgs`/`users` tables and backfill existing rows into the default org.
 
 ## Backend architecture
 

@@ -82,12 +82,12 @@ function fleetMetrics(loads: any[]) {
 /* ===================== ANALYST AGENT ===================== */
 // Read-only. Fetches all loads, computes metrics, asks Claude for a critique.
 
-export async function runAnalyst(): Promise<{
+export async function runAnalyst(orgId: string): Promise<{
   summary: string;
   flags: string[];
   opportunities: string[];
 }> {
-  const loads = await q("select * from loads order by created_at desc");
+  const loads = await q("select * from loads where org_id=$1 order by created_at desc", [orgId]);
   const metrics = fleetMetrics(loads);
 
   const system =
@@ -189,18 +189,19 @@ const SAFE_PATCH_COLS = [
 export type TraceEntry = { tool: string; input: any; result: string };
 export type Action = { type: string; [k: string]: any };
 
-async function runTool(name: string, input: any): Promise<{ result: string; action?: Action }> {
+async function runTool(name: string, input: any, orgId: string): Promise<{ result: string; action?: Action }> {
   switch (name) {
     case "list_loads": {
       const status = input.status || "all";
       const rows =
         status === "all"
           ? await q(
-              "select id, broker, status, driver, unit, rate, miles, rpm, origin, dest, pay, fuel, dispatch, repair from loads order by created_at desc"
+              "select id, broker, status, driver, unit, rate, miles, rpm, origin, dest, pay, fuel, dispatch, repair from loads where org_id=$1 order by created_at desc",
+              [orgId]
             )
           : await q(
-              "select id, broker, status, driver, unit, rate, miles, rpm, origin, dest, pay, fuel, dispatch, repair from loads where status=$1 order by created_at desc",
-              [status]
+              "select id, broker, status, driver, unit, rate, miles, rpm, origin, dest, pay, fuel, dispatch, repair from loads where org_id=$1 and status=$2 order by created_at desc",
+              [orgId, status]
             );
       return {
         result: JSON.stringify(
@@ -224,8 +225,9 @@ async function runTool(name: string, input: any): Promise<{ result: string; acti
       if (!sets.length) return { result: "No valid fields to update" };
       sets.push("updated_at=now()");
       vals.push(input.id);
+      vals.push(orgId);
       const rows = await q(
-        `update loads set ${sets.join(",")} where id=$${vals.length} returning id, broker, status, driver, unit, rate, miles`,
+        `update loads set ${sets.join(",")} where id=$${vals.length - 1} and org_id=$${vals.length} returning id, broker, status, driver, unit, rate, miles`,
         vals
       );
       if (!rows.length) return { result: "Load not found: " + input.id };
@@ -237,8 +239,8 @@ async function runTool(name: string, input: any): Promise<{ result: string; acti
 
     case "post_message": {
       const rows = await q(
-        `insert into messages (who, body, tag) values ($1,$2,$3) returning id`,
-        ["Dispatch AI", input.body, input.load_id || null]
+        `insert into messages (org_id, who, body, tag) values ($1,$2,$3,$4) returning id`,
+        [orgId, "Dispatch AI", input.body, input.load_id || null]
       );
       return {
         result: "posted:" + rows[0].id,
@@ -248,7 +250,8 @@ async function runTool(name: string, input: any): Promise<{ result: string; acti
 
     case "get_driver_stats": {
       const loads = await q(
-        "select driver, status, rate, miles, rpm, broker from loads"
+        "select driver, status, rate, miles, rpm, broker from loads where org_id=$1",
+        [orgId]
       );
       const m: Record<string, any> = {};
       loads.forEach(l => {
@@ -275,7 +278,7 @@ async function runTool(name: string, input: any): Promise<{ result: string; acti
   }
 }
 
-export async function runExecutor(goal: string): Promise<{
+export async function runExecutor(goal: string, orgId: string): Promise<{
   actions: Action[];
   summary: string;
   trace: TraceEntry[];
@@ -309,7 +312,7 @@ export async function runExecutor(goal: string): Promise<{
     const results: any[] = [];
     let done = false;
     for (const tu of uses) {
-      const { result, action } = await runTool(tu.name, tu.input);
+      const { result, action } = await runTool(tu.name, tu.input, orgId);
       trace.push({ tool: tu.name, input: tu.input, result });
       if (action) {
         if (action.type === "finish") { summary = action.summary; done = true; }

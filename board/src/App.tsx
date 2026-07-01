@@ -265,6 +265,10 @@ function Ledger({loads,onEdit}){
           <option value="date">Newest</option><option value="rpm">Highest RPM</option><option value="rate">Highest rate</option>
         </select>
         <Pill color={C.dim}>{rows.length} loads</Pill>
+        <button onClick={()=>api.exportLoadsCsv().catch(()=>{})} title="Export to CSV / QuickBooks"
+          style={{fontFamily:mono,fontSize:11.5,fontWeight:600,color:C.teal,background:C.teal+"14",border:`1px solid ${C.teal}44`,borderRadius:6,padding:"7px 12px",cursor:"pointer"}}>
+          ↓ Export CSV
+        </button>
       </div>
       <div style={{border:`1px solid ${C.line}`,borderRadius:9,overflow:"hidden"}}>
         <div className="hidden md:grid" style={{gridTemplateColumns:"80px 1fr 92px 56px 52px 70px 64px 64px 60px 66px",
@@ -971,46 +975,269 @@ function EditLoad({load,onClose,onSave,drivers}){
 }
 
 /* ============================ LOGIN ============================ */
+function LogoMark({size=44}){
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+      <rect x="2" y="2" width="96" height="96" rx="20" fill="#0A0D18"/>
+      <rect x="22" y="18" width="17" height="46" rx="4" fill="#16C7DE"/>
+      <rect x="22" y="47" width="39" height="17" rx="4" fill="#16C7DE"/>
+      <rect x="58" y="33" width="23" height="52" rx="6" fill="#0A0D18"/>
+      <rect x="36" y="33" width="45" height="23" rx="6" fill="#0A0D18"/>
+      <rect x="61" y="36" width="17" height="46" rx="4" fill="#8B5CFF"/>
+      <rect x="39" y="36" width="39" height="17" rx="4" fill="#8B5CFF"/>
+    </svg>
+  );
+}
+
+// Auth screen with three modes: sign up (new carrier), log in (email), and the
+// legacy shared team password for Joe's existing crew.
 function Login({onAuthed}){
-  const [pw,setPw]=useState(""); const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
+  const [mode,setMode]=useState("signup"); // signup | login | team
+  const [f,setF]=useState({orgName:"",name:"",email:"",password:"",pw:""});
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
+  const inp={width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:8,color:C.ink,padding:"11px 13px",fontFamily:mono,fontSize:13.5,marginTop:2};
+
   async function go(){
-    if(!pw) return;
     setBusy(true); setErr("");
-    const t=await api.login(pw); setBusy(false);
-    if(t) onAuthed(); else setErr("Wrong password");
+    try{
+      if(mode==="team"){
+        const t=await api.login(f.pw);
+        if(t) onAuthed(); else setErr("Wrong password");
+      } else if(mode==="login"){
+        await api.loginWithEmail(f.email.trim(), f.password);
+        onAuthed();
+      } else {
+        if(!f.email.trim()||f.password.length<8){ setErr("Email + 8-character password required"); setBusy(false); return; }
+        await api.signup({orgName:f.orgName.trim()||"My Carrier", email:f.email.trim(), password:f.password, name:f.name.trim()});
+        onAuthed(true); // fresh signup → onboarding
+      }
+    }catch(e){ setErr(String(e).replace("Error: ","")); }
+    setBusy(false);
   }
+
+  const tab=(id,label)=>(
+    <button onClick={()=>{setMode(id);setErr("");}} style={{flex:1,fontFamily:sans,fontSize:12.5,fontWeight:700,letterSpacing:.3,
+      color:mode===id?C.teal:C.dim,background:mode===id?C.panel2:"transparent",border:`1px solid ${mode===id?C.teal+"55":C.line}`,
+      borderRadius:8,padding:"8px 6px",cursor:"pointer"}}>{label}</button>
+  );
+
   return (
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans,display:"flex",alignItems:"center",justifyContent:"center",padding:18,
       backgroundImage:`radial-gradient(ellipse 60% 50% at 50% -10%,${C.tealGlow} 0%,transparent 70%)`}}>
-      <div style={{width:"100%",maxWidth:360,background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:28,
+      <div style={{width:"100%",maxWidth:400,background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:28,
         boxShadow:`0 0 60px ${C.tealGlow}`}}>
-        <div className="flex items-center" style={{gap:13,marginBottom:22}}>
-          <svg viewBox="0 0 100 100" width="44" height="44" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-            <rect x="2" y="2" width="96" height="96" rx="20" fill="#0A0D18"/>
-            <rect x="22" y="18" width="17" height="46" rx="4" fill="#16C7DE"/>
-            <rect x="22" y="47" width="39" height="17" rx="4" fill="#16C7DE"/>
-            <rect x="58" y="33" width="23" height="52" rx="6" fill="#0A0D18"/>
-            <rect x="36" y="33" width="45" height="23" rx="6" fill="#0A0D18"/>
-            <rect x="61" y="36" width="17" height="46" rx="4" fill="#8B5CFF"/>
-            <rect x="39" y="36" width="39" height="17" rx="4" fill="#8B5CFF"/>
-          </svg>
+        <div className="flex items-center" style={{gap:13,marginBottom:20}}>
+          <LogoMark size={44}/>
           <div>
             <div style={{fontFamily:sans,fontWeight:800,fontSize:18,letterSpacing:2,textTransform:"uppercase",
               background:`linear-gradient(90deg,${C.teal} 0%,#A78BFF 100%)`,WebkitBackgroundClip:"text",
               WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Loaded Logistics</div>
-            <div style={{fontFamily:mono,fontSize:9.5,letterSpacing:2,textTransform:"uppercase",color:C.faint,marginTop:2}}>Dispatch terminal</div>
+            <div style={{fontFamily:mono,fontSize:9.5,letterSpacing:2,textTransform:"uppercase",color:C.faint,marginTop:2}}>AI dispatch for small carriers</div>
           </div>
         </div>
-        <Label style={{marginBottom:6}}>Team password</Label>
-        <input type="password" value={pw} autoFocus onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}
-          placeholder="Enter password" style={{width:"100%",background:C.bg,border:`1px solid ${err?C.red:C.line}`,borderRadius:8,color:C.ink,padding:"11px 13px",fontFamily:mono,fontSize:14}}/>
-        {err && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginTop:8}}>{err}</div>}
-        <button onClick={go} disabled={busy} style={{width:"100%",marginTop:14,fontFamily:mono,fontSize:13,fontWeight:700,color:"#05070F",
+
+        <div className="flex" style={{gap:6,marginBottom:16}}>
+          {tab("signup","Start free")}
+          {tab("login","Log in")}
+          {tab("team","Team")}
+        </div>
+
+        {mode==="signup" && <>
+          <Label style={{marginBottom:2}}>Company name</Label>
+          <input style={inp} value={f.orgName} onChange={e=>set("orgName",e.target.value)} placeholder="Acme Trucking LLC"/>
+          <Label style={{marginBottom:2,marginTop:11}}>Your name</Label>
+          <input style={inp} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Joe Hawkinson"/>
+          <Label style={{marginBottom:2,marginTop:11}}>Work email</Label>
+          <input style={inp} value={f.email} onChange={e=>set("email",e.target.value)} placeholder="you@carrier.com" inputMode="email"/>
+          <Label style={{marginBottom:2,marginTop:11}}>Password</Label>
+          <input style={inp} type="password" value={f.password} onChange={e=>set("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="8+ characters"/>
+        </>}
+
+        {mode==="login" && <>
+          <Label style={{marginBottom:2}}>Email</Label>
+          <input style={inp} autoFocus value={f.email} onChange={e=>set("email",e.target.value)} placeholder="you@carrier.com" inputMode="email"/>
+          <Label style={{marginBottom:2,marginTop:11}}>Password</Label>
+          <input style={inp} type="password" value={f.password} onChange={e=>set("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Your password"/>
+        </>}
+
+        {mode==="team" && <>
+          <Label style={{marginBottom:2}}>Team password</Label>
+          <input style={inp} type="password" autoFocus value={f.pw} onChange={e=>set("pw",e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Shared board password"/>
+        </>}
+
+        {err && <div style={{color:C.red,fontFamily:mono,fontSize:11.5,marginTop:10}}>{err}</div>}
+        <button onClick={go} disabled={busy} style={{width:"100%",marginTop:16,fontFamily:mono,fontSize:13,fontWeight:700,color:"#05070F",
           background:busy?C.faint:`linear-gradient(90deg,${C.teal},${C.amberHi})`,
           border:"none",borderRadius:8,padding:"11px",cursor:busy?"default":"pointer",
           boxShadow:busy?"none":`0 0 18px ${C.teal}55`}}>
-          {busy?"Checking…":"Enter board"}</button>
-        <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:16,lineHeight:1.5}}>Shared board for the Loaded Logistics team. Everyone who signs in sees the same live loads and chat.</div>
+          {busy?"…":mode==="signup"?"Start 14-day free trial":mode==="login"?"Log in":"Enter board"}</button>
+
+        {mode==="signup" && <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:14,lineHeight:1.6}}>
+          No credit card. Full features for 14 days. Rate cons auto-import from your inbox — no more re-keying loads by hand. Cancel anytime.
+        </div>}
+        {mode!=="signup" && <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:14,lineHeight:1.5}}>
+          {mode==="team"?"For the Loaded Logistics crew — shared board access.":"Welcome back."}
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+/* ============================ ONBOARDING ============================ */
+// Shown once, right after signup. Captures the driver roster (drivers were
+// previously hardcoded to Joe's team) and confirms the company name.
+function Onboarding({me,onDone}){
+  const [orgName,setOrgName]=useState(me?.orgName||"");
+  const [drivers,setDrivers]=useState("");
+  const [busy,setBusy]=useState(false);
+  const inp={width:"100%",background:C.bg,border:`1px solid ${C.line}`,borderRadius:8,color:C.ink,padding:"11px 13px",fontFamily:mono,fontSize:13.5,marginTop:2};
+  async function finish(){
+    setBusy(true);
+    const roster=drivers.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+    try{
+      if(orgName.trim() && orgName.trim()!==me?.orgName) await api.renameOrg(orgName.trim());
+      await api.patchOrgSettings({drivers:roster, onboarded:true});
+    }catch(e){/* non-fatal */}
+    setBusy(false);
+    onDone(roster, orgName.trim());
+  }
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans,display:"flex",alignItems:"center",justifyContent:"center",padding:18,
+      backgroundImage:`radial-gradient(ellipse 60% 50% at 50% -10%,${C.tealGlow} 0%,transparent 70%)`}}>
+      <div style={{width:"100%",maxWidth:440,background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:28,boxShadow:`0 0 60px ${C.tealGlow}`}}>
+        <div className="flex items-center" style={{gap:12,marginBottom:8}}><LogoMark size={38}/>
+          <div style={{fontFamily:sans,fontWeight:800,fontSize:17,color:C.ink}}>Welcome aboard 🎉</div>
+        </div>
+        <div style={{fontFamily:sans,fontSize:12.5,color:C.dim,lineHeight:1.6,marginBottom:18}}>
+          You're on a 14-day free trial with every feature unlocked. Two quick things and your board is live.
+        </div>
+        <Label style={{marginBottom:2}}>Company name</Label>
+        <input style={inp} value={orgName} onChange={e=>setOrgName(e.target.value)} placeholder="Acme Trucking LLC"/>
+        <Label style={{marginBottom:2,marginTop:14}}>Your drivers <span style={{textTransform:"none",letterSpacing:0,color:C.faint}}>(one per line or comma-separated)</span></Label>
+        <textarea style={{...inp,minHeight:96,fontFamily:mono,resize:"vertical"}} value={drivers} onChange={e=>setDrivers(e.target.value)} placeholder={"TJ\nJohn\nChris"}/>
+        <button onClick={finish} disabled={busy} style={{width:"100%",marginTop:18,fontFamily:mono,fontSize:13,fontWeight:700,color:"#05070F",
+          background:busy?C.faint:`linear-gradient(90deg,${C.teal},${C.amberHi})`,border:"none",borderRadius:8,padding:"11px",cursor:busy?"default":"pointer",boxShadow:busy?"none":`0 0 18px ${C.teal}55`}}>
+          {busy?"Setting up…":"Go to my board"}</button>
+        <button onClick={()=>onDone([],orgName.trim())} style={{width:"100%",marginTop:8,fontFamily:mono,fontSize:11.5,color:C.dim,background:"transparent",border:"none",cursor:"pointer"}}>Skip for now</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ TRIAL BANNER + UPGRADE WALL ============================ */
+function daysLeft(iso){ if(!iso) return 0; return Math.max(0, Math.ceil((new Date(iso).getTime()-Date.now())/864e5)); }
+
+function TrialBanner({me,onUpgrade}){
+  if(!me || me.plan!=="trial" || me.planStatus!=="trialing") return null;
+  const d=daysLeft(me.trialEndsAt);
+  return (
+    <div className="flex items-center justify-between" style={{background:`linear-gradient(90deg,${C.teal}22,${C.purple}22)`,border:`1px solid ${C.teal}44`,borderRadius:10,padding:"9px 14px",marginBottom:14,gap:12,flexWrap:"wrap"}}>
+      <div style={{fontFamily:sans,fontSize:12.5,color:C.ink}}>
+        <strong style={{color:C.teal}}>{d} day{d===1?"":"s"} left</strong> in your free trial · {me.trucksUsed}/{me.truckLimit<0?"∞":me.truckLimit} trucks used
+      </div>
+      <button onClick={onUpgrade} style={{fontFamily:mono,fontSize:12,fontWeight:700,color:"#05070F",background:`linear-gradient(90deg,${C.teal},${C.amberHi})`,border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer"}}>Choose a plan →</button>
+    </div>
+  );
+}
+
+function UpgradeWall({me,onUpgrade,onSignOut}){
+  const expired=me?.access?.reason==="trial_expired";
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans,display:"flex",alignItems:"center",justifyContent:"center",padding:18,
+      backgroundImage:`radial-gradient(ellipse 60% 50% at 50% -10%,${C.tealGlow} 0%,transparent 70%)`}}>
+      <div style={{width:"100%",maxWidth:420,background:C.panel,border:`1px solid ${C.line}`,borderRadius:16,padding:28,boxShadow:`0 0 60px ${C.tealGlow}`,textAlign:"center"}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><LogoMark size={48}/></div>
+        <div style={{fontFamily:sans,fontWeight:800,fontSize:19,color:C.ink,marginBottom:8}}>{expired?"Your trial has ended":"Subscription inactive"}</div>
+        <div style={{fontFamily:sans,fontSize:13,color:C.dim,lineHeight:1.6,marginBottom:20}}>
+          Your data is safe and waiting. Pick a plan to get right back to your board — flat monthly pricing, no contract, cancel anytime.
+        </div>
+        <button onClick={onUpgrade} style={{width:"100%",fontFamily:mono,fontSize:13,fontWeight:700,color:"#05070F",background:`linear-gradient(90deg,${C.teal},${C.amberHi})`,border:"none",borderRadius:8,padding:"12px",cursor:"pointer",boxShadow:`0 0 18px ${C.teal}55`}}>See plans</button>
+        <button onClick={onSignOut} style={{marginTop:10,fontFamily:mono,fontSize:11.5,color:C.dim,background:"transparent",border:"none",cursor:"pointer"}}>Sign out</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ BILLING ============================ */
+function Billing({me,onRefresh}){
+  const [data,setData]=useState(null);
+  const [busy,setBusy]=useState("");
+  const [err,setErr]=useState("");
+  useEffect(()=>{ api.getPlans().then(setData).catch(e=>setErr(String(e))); },[]);
+
+  async function upgrade(planId){
+    setBusy(planId); setErr("");
+    try{ const {url}=await api.startCheckout(planId); if(url) window.location.href=url; else setErr("Could not start checkout"); }
+    catch(e){ setErr(String(e).replace("Error: ","")); }
+    setBusy("");
+  }
+  async function manage(){
+    setBusy("portal"); setErr("");
+    try{ const {url}=await api.openBillingPortal(); if(url) window.location.href=url; }
+    catch(e){ setErr(String(e).replace("Error: ","")); }
+    setBusy("");
+  }
+
+  const plans=(data?.plans||[]).filter(p=>p.id!=="trial");
+  const current=me?.plan;
+  const d=daysLeft(me?.trialEndsAt);
+
+  return (
+    <div>
+      {/* current status */}
+      <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:18,marginBottom:16}}>
+        <div className="flex items-center justify-between" style={{flexWrap:"wrap",gap:10}}>
+          <div>
+            <Label>Current plan</Label>
+            <div style={{fontFamily:sans,fontSize:20,fontWeight:800,color:C.teal,marginTop:4,textTransform:"capitalize"}}>
+              {current} <span style={{fontSize:12,color:me?.planStatus==="active"?C.green:C.amber,textTransform:"uppercase",letterSpacing:1}}>· {me?.planStatus}</span>
+            </div>
+            {me?.plan==="trial" && me?.planStatus==="trialing" && <div style={{fontFamily:mono,fontSize:11.5,color:C.dim,marginTop:4}}>{d} days left in trial</div>}
+          </div>
+          <div style={{textAlign:"right"}}>
+            <Label>Trucks used</Label>
+            <div style={{fontFamily:mono,fontSize:20,fontWeight:700,color:C.ink,marginTop:4}}>{me?.trucksUsed} <span style={{color:C.faint,fontSize:14}}>/ {me?.truckLimit<0?"∞":me?.truckLimit}</span></div>
+          </div>
+          {me?.planStatus==="active" && <button onClick={manage} disabled={busy==="portal"} style={{fontFamily:mono,fontSize:12,color:C.ink,background:C.raised,border:`1px solid ${C.line}`,borderRadius:7,padding:"9px 14px",cursor:"pointer"}}>{busy==="portal"?"…":"Manage subscription"}</button>}
+        </div>
+      </div>
+
+      {data && !data.configured && <div style={{fontFamily:sans,fontSize:12,color:C.amber,background:C.amber+"14",border:`1px solid ${C.amber}44`,borderRadius:8,padding:"10px 13px",marginBottom:14}}>
+        Billing isn't switched on for this deployment yet. Set the Stripe keys and price IDs on the backend to enable checkout.
+      </div>}
+      {err && <div style={{fontFamily:mono,fontSize:12,color:C.red,marginBottom:12}}>{err}</div>}
+
+      {/* plan cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3" style={{gap:12}}>
+        {plans.map(p=>{
+          const isCurrent=p.id===current;
+          const highlight=p.id==="growth";
+          return (
+            <div key={p.id} style={{background:C.panel,border:`1px solid ${highlight?C.teal+"66":C.line}`,borderRadius:12,padding:18,
+              display:"flex",flexDirection:"column",boxShadow:highlight?`0 0 24px ${C.teal}22`:"none"}}>
+              {highlight && <div style={{alignSelf:"flex-start",fontFamily:mono,fontSize:9,letterSpacing:1,textTransform:"uppercase",color:"#05070F",background:C.teal,borderRadius:4,padding:"2px 8px",marginBottom:8}}>Most popular</div>}
+              <div style={{fontFamily:sans,fontSize:16,fontWeight:800,color:C.ink}}>{p.name}</div>
+              <div style={{fontFamily:mono,marginTop:6}}><span style={{fontSize:28,fontWeight:800,color:C.ink}}>${p.priceMonthly}</span><span style={{fontSize:12,color:C.faint}}>/mo</span></div>
+              <div style={{fontFamily:sans,fontSize:11.5,color:C.dim,marginTop:6,lineHeight:1.5,minHeight:34}}>{p.blurb}</div>
+              <div style={{margin:"12px 0",display:"flex",flexDirection:"column",gap:6}}>
+                {p.features.map((ft,i)=>(
+                  <div key={i} className="flex items-start" style={{gap:7,fontFamily:sans,fontSize:11.5,color:C.dim}}>
+                    <span style={{color:C.green,marginTop:1}}>✓</span><span>{ft}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>!isCurrent&&upgrade(p.id)} disabled={isCurrent||busy===p.id}
+                style={{marginTop:"auto",fontFamily:mono,fontSize:12.5,fontWeight:700,
+                  color:isCurrent?C.dim:"#05070F",background:isCurrent?C.raised:`linear-gradient(90deg,${C.teal},${C.amberHi})`,
+                  border:isCurrent?`1px solid ${C.line}`:"none",borderRadius:8,padding:"10px",cursor:isCurrent?"default":"pointer"}}>
+                {isCurrent?"Current plan":busy===p.id?"…":`Upgrade to ${p.name}`}</button>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{fontFamily:sans,fontSize:11,color:C.faint,marginTop:16,lineHeight:1.6,maxWidth:680}}>
+        Flat monthly pricing — no per-seat fees, no setup charges, no annual contract. Every plan includes AI rate-con auto-import so your team stops re-keying loads by hand. Prices in USD.
       </div>
     </div>
   );
@@ -2067,7 +2294,7 @@ function Agents({onRefresh}){
 }
 
 /* ============================ APP ============================ */
-const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["email","Email"],["chat","Team"],["copilot","Copilot"],["agents","Agents"],["recruiting","Recruiting"]];
+const NAV=[["board","Board"],["loads","Loads"],["drivers","Drivers"],["pnl","Weekly P&L"],["monthly","Monthly P&L"],["lanes","Lane Book"],["inbox","Rate Cons"],["email","Email"],["chat","Team"],["copilot","Copilot"],["agents","Agents"],["recruiting","Recruiting"],["billing","Billing"]];
 export default function App(){
   const [authed,setAuthed]=useState(!!api.token());
   const [loads,setLoads]=useState([]);
@@ -2075,17 +2302,37 @@ export default function App(){
   const [ready,setReady]=useState(false);
   const [showNew,setShowNew]=useState(false);
   const [editing,setEditing]=useState(null);
+  const [me,setMe]=useState(null);              // session context: org, plan, usage, access
+  const [orgSettings,setOrgSettings]=useState(null);
+  const [freshSignup,setFreshSignup]=useState(false);
 
+  async function loadSession(){
+    try{
+      const [m,s]=await Promise.all([api.getMe(), api.getOrgSettings()]);
+      setMe(m); setOrgSettings(s||{});
+    }catch(e){ if(String(e).includes("401")){ api.logout(); setAuthed(false); } }
+  }
   async function refresh(){
     try{ const rows=await api.getLoads(); setLoads(rows); setReady(true); }
-    catch(e){ if(String(e).includes("401")) setAuthed(false); }
+    catch(e){ if(String(e).includes("401")){ api.logout(); setAuthed(false); } }
   }
   useEffect(()=>{
     if(!authed) return;
-    refresh();
+    loadSession(); refresh();
     const id=setInterval(refresh,10000);
     return ()=>clearInterval(id);
   },[authed]);
+
+  // Returning from Stripe checkout / portal → land on Billing and re-pull plan state.
+  useEffect(()=>{
+    const p=new URLSearchParams(window.location.search);
+    if(p.get("billing")||p.get("tab")==="billing"){
+      setView("billing");
+      // give the webhook a moment, then refresh the session a couple times
+      setTimeout(loadSession,1500); setTimeout(loadSession,5000);
+      window.history.replaceState({},"",window.location.pathname);
+    }
+  },[]);
 
   async function patchLoad(id,patch){
     setLoads(ls=>ls.map(l=>l.id===id?{...l,...patch}:l));            // optimistic
@@ -2100,13 +2347,36 @@ export default function App(){
     try{ const row=await api.createLoad(load); setLoads(ls=>[row,...ls]); }
     catch(e){ refresh(); }
   }
-  function signOut(){ api.logout(); setAuthed(false); }
+  function signOut(){ api.logout(); setAuthed(false); setMe(null); setOrgSettings(null); }
 
+  // Legacy/default org keeps Joe's hardcoded roster as a fallback; new carriers
+  // use the roster they entered at onboarding (org settings) merged with any
+  // driver names already present on their loads.
+  const isDefaultOrg = me?.orgId==="00000000-0000-0000-0000-000000000001";
   const drivers=useMemo(()=>{
-    const s=new Set(DRIVER_ORDER); loads.forEach(l=>l.driver&&s.add(l.driver)); return Array.from(s);
-  },[loads]);
+    const s=new Set();
+    if(isDefaultOrg) DRIVER_ORDER.forEach(d=>s.add(d));
+    (orgSettings?.drivers||[]).forEach(d=>d&&s.add(d));
+    loads.forEach(l=>l.driver&&s.add(l.driver));
+    return Array.from(s);
+  },[loads,orgSettings,isDefaultOrg]);
 
-  if(!authed) return <Login onAuthed={()=>setAuthed(true)}/>;
+  if(!authed) return <Login onAuthed={(fresh)=>{ setFreshSignup(!!fresh); setAuthed(true); }}/>;
+
+  // First-run onboarding for a brand-new carrier account.
+  if(me && !isDefaultOrg && orgSettings && !orgSettings.onboarded && (freshSignup || (loads.length===0 && me.plan==="trial"))){
+    return <Onboarding me={me} onDone={(roster,name)=>{
+      setOrgSettings(s=>({...(s||{}),drivers:roster,onboarded:true}));
+      if(name) setMe(m=>m?{...m,orgName:name}:m);
+      setFreshSignup(false);
+    }}/>;
+  }
+
+  // Lock the app if the trial expired or the subscription lapsed. The Billing
+  // tab stays reachable so they can re-subscribe; every other tab hits the wall.
+  if(me && me.access && me.access.ok===false && view!=="billing"){
+    return <UpgradeWall me={me} onUpgrade={()=>setView("billing")} onSignOut={signOut}/>;
+  }
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:sans}}>
@@ -2130,10 +2400,14 @@ export default function App(){
               <div style={{fontFamily:sans,fontWeight:800,fontSize:15.5,letterSpacing:2,textTransform:"uppercase",
                 background:`linear-gradient(90deg,${C.teal} 0%,#A78BFF 100%)`,WebkitBackgroundClip:"text",
                 WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Loaded Logistics</div>
-              <div style={{fontFamily:mono,fontSize:9.5,letterSpacing:2,textTransform:"uppercase",color:C.faint,marginTop:1}}>Dispatch terminal</div>
+              <div style={{fontFamily:mono,fontSize:9.5,letterSpacing:2,textTransform:"uppercase",color:C.faint,marginTop:1}}>{me?.orgName||"Dispatch terminal"}</div>
             </div>
           </div>
           <div className="flex items-center" style={{gap:14}}>
+            {me?.plan==="trial" && me?.planStatus==="trialing" &&
+              <button onClick={()=>setView("billing")} style={{fontFamily:mono,fontSize:10.5,fontWeight:700,color:C.teal,background:C.teal+"18",border:`1px solid ${C.teal}44`,borderRadius:6,padding:"5px 10px",cursor:"pointer"}}>
+                Trial · {daysLeft(me.trialEndsAt)}d
+              </button>}
             <div className="flex items-center" style={{gap:7}}>
               <div style={{width:7,height:7,borderRadius:9,background:ready?C.green:C.amber,boxShadow:ready?`0 0 6px ${C.green}88`:`0 0 6px ${C.amber}88`}}/>
               <span style={{fontFamily:mono,fontSize:10.5,color:C.dim}}>{ready?"synced":"connecting"}</span>
@@ -2156,8 +2430,10 @@ export default function App(){
       </div>
 
       <div style={{maxWidth:1280,margin:"0 auto",padding:"16px 18px 60px"}}>
+        {view!=="billing" && <TrialBanner me={me} onUpgrade={()=>setView("billing")}/>}
         <div style={{marginBottom:16}}><KpiBar loads={loads}/></div>
         {view==="board" && <Board loads={loads} patchLoad={patchLoad} removeLoad={removeLoad} drivers={drivers} onNewLoad={()=>setShowNew(true)} onEdit={setEditing}/>}
+        {view==="billing" && <Billing me={me} onRefresh={loadSession}/>}
         {view==="loads" && <Ledger loads={loads} onEdit={setEditing}/>}
         {view==="drivers" && <Drivers loads={loads}/>}
         {view==="pnl" && <WeeklyPnL loads={loads}/>}
